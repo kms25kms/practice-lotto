@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로또 번호 추첨기</title>
+<style>
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    color: #fff;
+  }
+  h1 {
+    margin-bottom: 20px;
+    font-size: 28px;
+  }
+  
+  .input-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 10px 24px;
+    border-radius: 30px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+  .input-container label {
+    font-size: 16px;
+    font-weight: bold;
+  }
+  .input-container input {
+    width: 60px;
+    padding: 6px 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .input-container input:focus {
+    border-color: #ffcc00;
+  }
+
+  #countdown {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #ffcc00;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    animation: pulse 1s infinite alternate;
+  }
+  #announcement {
+    font-size: 22px;
+    font-weight: bold;
+    color: #2bf076;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    animation: pop 0.4s ease;
+  }
+  @keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
+  }
+
+  #balls {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 30px;
+    min-height: 100px;
+    width: min(100%, 600px);
+  }
+  .lotto-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 50px;
+  }
+  .round {
+    width: 35px;
+    flex: 0 0 35px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: right;
+  }
+  .ball {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    color: #fff;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    animation: pop 0.4s ease;
+    transition: all 0.3s ease;
+  }
+  @keyframes pop {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .ball.mystery {
+    background: radial-gradient(circle at 30% 30%, #4b5563, #1f2937);
+    color: #ffcc00;
+    border: 2px dashed #ffcc00;
+    box-sizing: border-box;
+    animation: shake 0.5s infinite alternate;
+  }
+  @keyframes shake {
+    from { transform: rotate(-5deg); }
+    to { transform: rotate(5deg); }
+  }
+
+  /* 로또 공 색상 규칙: 1-10 노랑, 11-20 파랑, 21-30 빨강, 31-40 회색, 41-45 초록 */
+  .c1 { background: #fbc400; color: #333; }
+  .c2 { background: #69c8f2; }
+  .c3 { background: #ff7272; }
+  .c4 { background: #aaaaaa; }
+  .c5 { background: #b0d840; color: #333; }
+
+  button {
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 30px;
+    background: #ffcc00;
+    color: #333;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  button:active {
+    transform: scale(0.95);
+  }
+  @media (max-width: 520px) {
+    #balls {
+      gap: 10px;
+    }
+    .lotto-row {
+      gap: 5px;
+    }
+    .round {
+      width: 25px;
+      flex-basis: 25px;
+      font-size: 12px;
+    }
+    .ball {
+      width: 38px;
+      height: 38px;
+      font-size: 15px;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <h1>🎱 로또 번호 추첨기</h1>
+  
+  <div class="input-container">
+    <label for="game-count">추첨할 세트 수 (1~10):</label>
+    <input type="number" id="game-count" min="1" max="10" value="5">
+  </div>
+
+  <div id="countdown" style="display: none;"></div>
+  <div id="announcement" style="display: none;"></div>
+
+  <div id="balls"></div>
+  <button id="draw-btn" onclick="drawLotto()">번호 추첨하기</button>
+
+<script>
+  let countdownInterval = null;
+
+  function getBallColorClass(num) {
+    if (num <= 10) return 'c1';
+    if (num <= 20) return 'c2';
+    if (num <= 30) return 'c3';
+    if (num <= 40) return 'c4';
+    return 'c5';
+  }
+
+  function drawLotto() {
+    // If a countdown is already running, clean it up
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+    }
+
+    const drawBtn = document.getElementById('draw-btn');
+    const gameCountInput = document.getElementById('game-count');
+    const ballsDiv = document.getElementById('balls');
+    const countdownDiv = document.getElementById('countdown');
+    const announcementDiv = document.getElementById('announcement');
+
+    let count = parseInt(gameCountInput.value);
+    if (isNaN(count) || count < 1) {
+      alert('추첨할 세트 수는 1개 이상이어야 합니다.');
+      return;
+    }
+    if (count > 10) {
+      alert('한 번에 최대 10개 세트까지만 추첨할 수 있습니다.');
+      return;
+    }
+
+    // Disable controls
+    drawBtn.disabled = true;
+    gameCountInput.disabled = true;
+    drawBtn.style.opacity = 0.5;
+    drawBtn.style.cursor = 'not-allowed';
+
+    // Clear previous results
+    ballsDiv.innerHTML = '';
+    announcementDiv.style.display = 'none';
+    countdownDiv.style.display = 'block';
+
+    // Pre-generate lotto numbers
+    const allGames = [];
+    for (let round = 1; round <= count; round++) {
+      const numbers = [];
+      while (numbers.length < 6) {
+        const rand = Math.floor(Math.random() * 45) + 1;
+        if (!numbers.includes(rand)) {
+          numbers.push(rand);
+        }
+      }
+      numbers.sort((a, b) => a - b);
+      allGames.push(numbers);
+    }
+
+    // Create the placeholders in UI
+    const ballElements = []; // Store elements to reveal later
+    for (let round = 1; round <= count; round++) {
+      const row = document.createElement('div');
+      row.className = 'lotto-row';
+
+      const roundLabel = document.createElement('span');
+      roundLabel.className = 'round';
+      roundLabel.textContent = `${round}회`;
+      row.appendChild(roundLabel);
+      ballsDiv.appendChild(row);
+
+      const rowBalls = [];
+      for (let i = 0; i < 6; i++) {
+        const ball = document.createElement('div');
+        ball.className = 'ball mystery';
+        ball.textContent = '?';
+        row.appendChild(ball);
+        rowBalls.push(ball);
+      }
+      ballElements.push(rowBalls);
+    }
+
+    // Countdown logic
+    let secondsLeft = 10;
+    countdownDiv.textContent = `⏳ 추첨 중... 결과 발표까지 ${secondsLeft}초`;
+
+    countdownInterval = setInterval(() => {
+      secondsLeft--;
+      if (secondsLeft > 0) {
+        countdownDiv.textContent = `⏳ 추첨 중... 결과 발표까지 ${secondsLeft}초`;
+      } else {
+        clearInterval(countdownInterval);
+        countdownDiv.style.display = 'none';
+        
+        // Show announcement
+        announcementDiv.textContent = '🎉 추첨 결과가 발표되었습니다! 🎉';
+        announcementDiv.style.display = 'block';
+
+        // Reveal numbers progressively
+        revealResults(allGames, ballElements, () => {
+          // Re-enable controls after all reveals complete
+          drawBtn.disabled = false;
+          gameCountInput.disabled = false;
+          drawBtn.style.opacity = 1;
+          drawBtn.style.cursor = 'pointer';
+        });
+      }
+    }, 1000);
+  }
+
+  function revealResults(allGames, ballElements, onComplete) {
+    let delay = 0;
+    const revealDelay = 80; // ms between each ball
+
+    for (let roundIdx = 0; roundIdx < allGames.length; roundIdx++) {
+      const numbers = allGames[roundIdx];
+      const rowBalls = ballElements[roundIdx];
+
+      for (let i = 0; i < 6; i++) {
+        const num = numbers[i];
+        const ball = rowBalls[i];
+
+        setTimeout(() => {
+          ball.classList.remove('mystery');
+          ball.classList.add(getBallColorClass(num));
+          ball.textContent = num;
+          // Trigger a pop animation again on reveal
+          ball.style.animation = 'none';
+          // Force reflow
+          ball.offsetHeight;
+          ball.style.animation = 'pop 0.4s ease';
+        }, delay);
+
+        delay += revealDelay;
+      }
+    }
+
+    // Call onComplete after all timeouts finish
+    setTimeout(onComplete, delay);
+  }
+</script>
+
+</body>
+</html>

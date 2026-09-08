@@ -5,50 +5,108 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>로또 번호 추첨기</title>
 <style>
+  :root {
+    --bg1: #1e3c72;
+    --bg2: #2a5298;
+    --text: #ffffff;
+    --panel: rgba(255, 255, 255, 0.15);
+    --panel-strong: rgba(255, 255, 255, 0.2);
+    --input-bg: rgba(255, 255, 255, 0.9);
+    --input-text: #333;
+    --button-bg: #ffcc00;
+    --button-text: #333;
+    --countdown: #ffcc00;
+    --announcement: #2bf076;
+    --round-text: #ffffff;
+  }
+
+  body[data-theme='light'] {
+    --bg1: #edf4ff;
+    --bg2: #dfe9fb;
+    --text: #1f2a37;
+    --panel: rgba(255, 255, 255, 0.7);
+    --panel-strong: rgba(255, 255, 255, 0.9);
+    --input-bg: rgba(255, 255, 255, 0.95);
+    --input-text: #1f2937;
+    --button-bg: #ffd74f;
+    --button-text: #1d1d1d;
+    --countdown: #d97706;
+    --announcement: #059669;
+    --round-text: #374151;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
   body {
     font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    background: linear-gradient(135deg, var(--bg1), var(--bg2));
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     margin: 0;
-    color: #fff;
+    color: var(--text);
+    transition: background 0.25s ease, color 0.25s ease;
   }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 700px);
+    padding: 24px 16px 40px;
+  }
+
   h1 {
     margin-bottom: 20px;
     font-size: 28px;
+    text-align: center;
   }
-  
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
   .input-container {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 20px;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--panel);
     padding: 10px 24px;
     border-radius: 30px;
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   }
+
   .input-container label {
     font-size: 16px;
     font-weight: bold;
   }
+
   .input-container input {
     width: 60px;
     padding: 6px 10px;
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 15px;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--input-bg);
     text-align: center;
     font-size: 16px;
     font-weight: bold;
-    color: #333;
+    color: var(--input-text);
     outline: none;
     transition: border-color 0.2s ease;
   }
+
   .input-container input:focus {
     border-color: #ffcc00;
   }
@@ -57,18 +115,20 @@
     font-size: 24px;
     font-weight: bold;
     margin-bottom: 20px;
-    color: #ffcc00;
+    color: var(--countdown);
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     animation: pulse 1s infinite alternate;
   }
+
   #announcement {
     font-size: 22px;
     font-weight: bold;
-    color: #2bf076;
+    color: var(--announcement);
     margin-bottom: 20px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     animation: pop 0.4s ease;
   }
+
   @keyframes pulse {
     from { transform: scale(1); }
     to { transform: scale(1.05); }
@@ -82,6 +142,7 @@
     min-height: 100px;
     width: min(100%, 600px);
   }
+
   .lotto-row {
     display: flex;
     align-items: center;
@@ -89,13 +150,16 @@
     gap: 12px;
     min-height: 50px;
   }
+
   .round {
     width: 35px;
     flex: 0 0 35px;
     font-size: 14px;
     font-weight: bold;
     text-align: right;
+    color: var(--round-text);
   }
+
   .ball {
     width: 46px;
     height: 46px;
@@ -110,6 +174,7 @@
     animation: pop 0.4s ease;
     transition: all 0.3s ease;
   }
+
   @keyframes pop {
     from { transform: scale(0); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
@@ -122,6 +187,7 @@
     box-sizing: border-box;
     animation: shake 0.5s infinite alternate;
   }
+
   @keyframes shake {
     from { transform: rotate(-5deg); }
     to { transform: rotate(5deg); }
@@ -140,51 +206,97 @@
     font-weight: bold;
     border: none;
     border-radius: 30px;
-    background: #ffcc00;
-    color: #333;
+    background: var(--button-bg);
+    color: var(--button-text);
     cursor: pointer;
-    transition: transform 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
   }
+
   button:active {
     transform: scale(0.95);
   }
+
+  #theme-toggle {
+    min-width: 150px;
+  }
+
   @media (max-width: 520px) {
     #balls {
       gap: 10px;
     }
+
     .lotto-row {
       gap: 5px;
     }
+
     .round {
       width: 25px;
       flex-basis: 25px;
       font-size: 12px;
     }
+
     .ball {
       width: 38px;
       height: 38px;
       font-size: 15px;
     }
+
+    .input-container {
+      flex-direction: column;
+      padding: 12px 18px;
+    }
+
+    .controls {
+      flex-direction: column;
+    }
   }
 </style>
 </head>
-<body>
+<body data-theme="dark">
+  <div class="app">
+    <h1>🎱 로또 번호 추첨기</h1>
 
-  <h1>🎱 로또 번호 추첨기</h1>
-  
-  <div class="input-container">
-    <label for="game-count">추첨할 세트 수 (1~10):</label>
-    <input type="number" id="game-count" min="1" max="10" value="5">
+    <div class="controls">
+      <button id="theme-toggle" type="button" aria-label="다크 모드 전환">☀️ 라이트 모드</button>
+      <button id="draw-btn" type="button" onclick="drawLotto()">번호 추첨하기</button>
+    </div>
+
+    <div class="input-container">
+      <label for="game-count">추첨할 세트 수 (1~10):</label>
+      <input type="number" id="game-count" min="1" max="10" value="5">
+    </div>
+
+    <div id="countdown" style="display: none;"></div>
+    <div id="announcement" style="display: none;"></div>
+
+    <div id="balls"></div>
   </div>
-
-  <div id="countdown" style="display: none;"></div>
-  <div id="announcement" style="display: none;"></div>
-
-  <div id="balls"></div>
-  <button id="draw-btn" onclick="drawLotto()">번호 추첨하기</button>
 
 <script>
   let countdownInterval = null;
+  const themeToggle = document.getElementById('theme-toggle');
+
+  function applyTheme(theme) {
+    document.body.dataset.theme = theme;
+    themeToggle.textContent = theme === 'light' ? '🌙 다크 모드' : '☀️ 라이트 모드';
+    localStorage.setItem('lotto-theme', theme);
+  }
+
+  function getPreferredTheme() {
+    const savedTheme = localStorage.getItem('lotto-theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      return savedTheme;
+    }
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+
+  themeToggle.addEventListener('click', () => {
+    const nextTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme);
+  });
+
+  applyTheme(getPreferredTheme());
 
   function getBallColorClass(num) {
     if (num <= 10) return 'c1';
@@ -195,7 +307,6 @@
   }
 
   function drawLotto() {
-    // If a countdown is already running, clean it up
     if (countdownInterval) {
       clearInterval(countdownInterval);
     }
@@ -206,7 +317,7 @@
     const countdownDiv = document.getElementById('countdown');
     const announcementDiv = document.getElementById('announcement');
 
-    let count = parseInt(gameCountInput.value);
+    let count = parseInt(gameCountInput.value, 10);
     if (isNaN(count) || count < 1) {
       alert('추첨할 세트 수는 1개 이상이어야 합니다.');
       return;
@@ -216,18 +327,15 @@
       return;
     }
 
-    // Disable controls
     drawBtn.disabled = true;
     gameCountInput.disabled = true;
     drawBtn.style.opacity = 0.5;
     drawBtn.style.cursor = 'not-allowed';
 
-    // Clear previous results
     ballsDiv.innerHTML = '';
     announcementDiv.style.display = 'none';
     countdownDiv.style.display = 'block';
 
-    // Pre-generate lotto numbers
     const allGames = [];
     for (let round = 1; round <= count; round++) {
       const numbers = [];
@@ -241,8 +349,7 @@
       allGames.push(numbers);
     }
 
-    // Create the placeholders in UI
-    const ballElements = []; // Store elements to reveal later
+    const ballElements = [];
     for (let round = 1; round <= count; round++) {
       const row = document.createElement('div');
       row.className = 'lotto-row';
@@ -264,7 +371,6 @@
       ballElements.push(rowBalls);
     }
 
-    // Countdown logic
     let secondsLeft = 10;
     countdownDiv.textContent = `⏳ 추첨 중... 결과 발표까지 ${secondsLeft}초`;
 
@@ -275,14 +381,11 @@
       } else {
         clearInterval(countdownInterval);
         countdownDiv.style.display = 'none';
-        
-        // Show announcement
+
         announcementDiv.textContent = '🎉 추첨 결과가 발표되었습니다! 🎉';
         announcementDiv.style.display = 'block';
 
-        // Reveal numbers progressively
         revealResults(allGames, ballElements, () => {
-          // Re-enable controls after all reveals complete
           drawBtn.disabled = false;
           gameCountInput.disabled = false;
           drawBtn.style.opacity = 1;
@@ -294,7 +397,7 @@
 
   function revealResults(allGames, ballElements, onComplete) {
     let delay = 0;
-    const revealDelay = 80; // ms between each ball
+    const revealDelay = 80;
 
     for (let roundIdx = 0; roundIdx < allGames.length; roundIdx++) {
       const numbers = allGames[roundIdx];
@@ -308,9 +411,7 @@
           ball.classList.remove('mystery');
           ball.classList.add(getBallColorClass(num));
           ball.textContent = num;
-          // Trigger a pop animation again on reveal
           ball.style.animation = 'none';
-          // Force reflow
           ball.offsetHeight;
           ball.style.animation = 'pop 0.4s ease';
         }, delay);
@@ -319,7 +420,6 @@
       }
     }
 
-    // Call onComplete after all timeouts finish
     setTimeout(onComplete, delay);
   }
 </script>

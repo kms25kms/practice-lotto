@@ -221,6 +221,106 @@
     min-width: 150px;
   }
 
+  .contact-card {
+    width: min(100%, 620px);
+    background: var(--panel);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(10px);
+    margin-top: 8px;
+  }
+
+  .contact-card h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+    text-align: center;
+  }
+
+  .contact-card p {
+    margin: 0 0 20px;
+    text-align: center;
+    color: var(--text);
+    opacity: 0.85;
+    line-height: 1.5;
+  }
+
+  .contact-form {
+    display: grid;
+    gap: 16px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+  }
+
+  .form-group label {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text);
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--input-text);
+    background: var(--input-bg);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .form-group textarea {
+    min-height: 140px;
+    resize: vertical;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: #ffcc00;
+    box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.15);
+  }
+
+  .submit-row {
+    display: flex;
+    justify-content: center;
+  }
+
+  .submit-row button {
+    width: 100%;
+    max-width: 220px;
+  }
+
+  .form-status {
+    min-height: 24px;
+    text-align: center;
+    font-weight: bold;
+    margin-top: 4px;
+  }
+
+  .form-status.success {
+    color: #a7f3d0;
+  }
+
+  .form-status.error {
+    color: #fca5a5;
+  }
+
   @media (max-width: 520px) {
     #balls {
       gap: 10px;
@@ -271,6 +371,51 @@
     <div id="announcement" style="display: none;"></div>
 
     <div id="balls"></div>
+
+    <div class="contact-card">
+      <h2>🤝 제휴 문의</h2>
+      <p>프로젝트 협업, 광고 제안, 서비스 제휴, 상담 요청을 남겨주시면 빠르게 답변드리겠습니다.</p>
+
+      <form class="contact-form" action="https://formspree.io/f/xdeowvlw" method="POST" accept-charset="UTF-8">
+        <div class="field-row">
+          <div class="form-group">
+            <label for="name">이름</label>
+            <input id="name" name="name" type="text" placeholder="홍길동" required>
+          </div>
+          <div class="form-group">
+            <label for="company">회사/브랜드</label>
+            <input id="company" name="company" type="text" placeholder="예: ABC Corp">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="form-group">
+            <label for="email">이메일</label>
+            <input id="email" name="email" type="email" placeholder="you@example.com" required>
+          </div>
+          <div class="form-group">
+            <label for="budget">예산 범위</label>
+            <select id="budget" name="budget">
+              <option value="">선택해주세요</option>
+              <option value="10만원 미만">10만원 미만</option>
+              <option value="10~50만원">10~50만원</option>
+              <option value="50~100만원">50~100만원</option>
+              <option value="100만원 이상">100만원 이상</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="message">제휴 내용</label>
+          <textarea id="message" name="message" placeholder="협업 목적, 일정, 기대 사항 등을 적어주세요." required></textarea>
+        </div>
+
+        <div class="submit-row">
+          <button type="submit">문의 보내기</button>
+        </div>
+        <div class="form-status" aria-live="polite"></div>
+      </form>
+    </div>
   </div>
 
 <script>

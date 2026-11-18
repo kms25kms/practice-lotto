@@ -2,572 +2,811 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>로또 번호 추첨기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>로또 강화하기 — 10억으로 시작</title>
+<meta name="description" content="10억으로 시작해서 로또로 얼마나 불릴 수 있을까? 실제 확률로 돌리는 로또 강화 게임">
+<meta property="og:title" content="로또 강화하기 — 10억으로 시작">
+<meta property="og:description" content="10억으로 시작해서 로또로 얼마나 불릴 수 있을까? 실제 확률로 돌려보세요.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23fbc400'/%3E%3Ctext x='32' y='42' font-size='28' font-weight='bold' text-anchor='middle' fill='%23333'%3E7%3C/text%3E%3C/svg%3E">
 <style>
   :root {
-    --bg1: #1e3c72;
-    --bg2: #2a5298;
-    --text: #ffffff;
-    --panel: rgba(255, 255, 255, 0.15);
-    --panel-strong: rgba(255, 255, 255, 0.2);
-    --input-bg: rgba(255, 255, 255, 0.9);
-    --input-text: #333;
-    --button-bg: #ffcc00;
-    --button-text: #333;
-    --countdown: #ffcc00;
-    --announcement: #2bf076;
-    --round-text: #ffffff;
+    --bg: #0b0d17;
+    --bg-2: #141829;
+    --panel: #171b2e;
+    --panel-2: #1f2440;
+    --line: #2b3157;
+    --text: #eef0ff;
+    --muted: #9aa0c3;
+    --gold: #ffcf3f;
+    --gold-2: #ff9f1c;
+    --win: #39e08a;
+    --lose: #ff5c6c;
+    --accent: #7c6cff;
   }
-
-  body[data-theme='light'] {
-    --bg1: #edf4ff;
-    --bg2: #dfe9fb;
-    --text: #1f2a37;
-    --panel: rgba(255, 255, 255, 0.7);
-    --panel-strong: rgba(255, 255, 255, 0.9);
-    --input-bg: rgba(255, 255, 255, 0.95);
-    --input-text: #1f2937;
-    --button-bg: #ffd74f;
-    --button-text: #1d1d1d;
-    --countdown: #d97706;
-    --announcement: #059669;
-    --round-text: #374151;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-    background: linear-gradient(135deg, var(--bg1), var(--bg2));
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(900px 500px at 50% -10%, rgba(124, 108, 255, .25), transparent 70%),
+      radial-gradient(700px 400px at 100% 100%, rgba(255, 159, 28, .10), transparent 70%),
+      var(--bg);
     color: var(--text);
-    transition: background 0.25s ease, color 0.25s ease;
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    word-break: keep-all;
   }
+  button, input { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
 
-  .app {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: min(100%, 700px);
-    padding: 24px 16px 40px;
-  }
+  .app { width: min(100%, 600px); margin: 0 auto; padding: 22px 16px 60px; }
 
+  header { text-align: center; margin-bottom: 18px; }
   h1 {
-    margin-bottom: 20px;
-    font-size: 28px;
-    text-align: center;
+    margin: 0;
+    font-size: 30px;
+    letter-spacing: -.02em;
+    background: linear-gradient(180deg, #fff6c9, var(--gold) 55%, var(--gold-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 10px rgba(255, 207, 63, .35));
+  }
+  .sub { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+  .card {
+    background: linear-gradient(180deg, var(--panel), var(--bg-2));
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
   }
 
-  .controls {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 20px;
+  /* 자산 패널 */
+  .wallet { text-align: center; position: relative; overflow: hidden; }
+  .wallet-label { color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: .05em; }
+  .money {
+    font-size: clamp(30px, 9vw, 44px);
+    font-weight: 900;
+    letter-spacing: -.02em;
+    color: var(--gold);
+    text-shadow: 0 0 24px rgba(255, 207, 63, .35);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    margin: 2px 0 4px;
   }
-
-  .input-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-    background: var(--panel);
-    padding: 10px 24px;
-    border-radius: 30px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  .delta { height: 22px; font-weight: 800; font-size: 16px; opacity: 0; transition: opacity .3s; }
+  .delta.show { opacity: 1; }
+  .delta.up { color: var(--win); }
+  .delta.down { color: var(--lose); }
+  .stats-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    font-size: 13.5px; font-weight: 700;
   }
+  .pill small { color: var(--muted); font-weight: 600; }
 
-  .input-container label {
-    font-size: 16px;
-    font-weight: bold;
+  /* 강화 단계 배지 */
+  .stage {
+    font-weight: 900; font-size: 15px; padding: 2px 10px; border-radius: 8px;
+    background: #2a2f4d; color: #c3c8e6;
   }
-
-  .input-container input {
-    width: 60px;
-    padding: 6px 10px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 15px;
-    background: var(--input-bg);
-    text-align: center;
-    font-size: 16px;
-    font-weight: bold;
-    color: var(--input-text);
-    outline: none;
-    transition: border-color 0.2s ease;
+  .stage.s1 { background: linear-gradient(135deg, #2563eb, #38bdf8); color: #fff; }
+  .stage.s2 { background: linear-gradient(135deg, #7c3aed, #c084fc); color: #fff; box-shadow: 0 0 12px rgba(192, 132, 252, .6); }
+  .stage.s3 { background: linear-gradient(135deg, #ea580c, #facc15); color: #1a1200; box-shadow: 0 0 16px rgba(250, 204, 21, .7); }
+  .stage.s4 {
+    background: linear-gradient(90deg, #ff5c6c, #ffcf3f, #39e08a, #38bdf8, #c084fc, #ff5c6c);
+    background-size: 300% 100%; color: #111; animation: rainbow 2.5s linear infinite;
+    box-shadow: 0 0 20px rgba(255, 255, 255, .5);
   }
+  @keyframes rainbow { to { background-position: 300% 0; } }
 
-  .input-container input:focus {
-    border-color: #ffcc00;
+  /* 구매 패널 */
+  .buy h2, .result h2, .section-title { margin: 0 0 12px; font-size: 17px; }
+  .count-input {
+    display: flex; align-items: center; gap: 10px;
+    background: #0f1222; border: 2px solid var(--line); border-radius: 14px; padding: 8px 14px;
+    transition: border-color .2s;
   }
-
-  #countdown {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 20px;
-    color: var(--countdown);
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    animation: pulse 1s infinite alternate;
+  .count-input:focus-within { border-color: var(--gold); }
+  .count-input input {
+    flex: 1; min-width: 0; border: none; background: none; outline: none;
+    font-size: 26px; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums;
   }
-
-  #announcement {
-    font-size: 22px;
-    font-weight: bold;
-    color: var(--announcement);
-    margin-bottom: 20px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    animation: pop 0.4s ease;
+  .count-input span { font-weight: 800; color: var(--muted); }
+  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+  .quick button {
+    padding: 9px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2);
+    font-weight: 800; font-size: 14px; cursor: pointer; transition: background .15s, border-color .15s;
   }
+  .quick button:hover { border-color: var(--gold); }
+  .quick .max { color: var(--gold); }
+  .quick .clear { color: var(--muted); }
+  .cost { display: flex; justify-content: space-between; margin: 12px 2px 0; font-size: 14px; color: var(--muted); }
+  .cost b { color: var(--text); }
+  .cost .warn { color: var(--lose); }
 
-  @keyframes pulse {
-    from { transform: scale(1); }
-    to { transform: scale(1.05); }
+  .big-btn {
+    width: 100%; margin-top: 14px; padding: 16px; border: none; border-radius: 14px; cursor: pointer;
+    font-size: 18px; font-weight: 900; color: #1a1200;
+    background: linear-gradient(180deg, #ffe27a, var(--gold) 50%, var(--gold-2));
+    box-shadow: 0 8px 24px rgba(255, 159, 28, .35), inset 0 -3px 0 rgba(0, 0, 0, .15);
+    transition: transform .1s, filter .15s;
   }
+  .big-btn:hover { filter: brightness(1.05); }
+  .big-btn:active { transform: scale(.98); }
+  .big-btn:disabled { filter: grayscale(.8) brightness(.6); cursor: not-allowed; }
 
-  #balls {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-bottom: 30px;
-    min-height: 100px;
-    width: min(100%, 600px);
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .btn {
+    padding: 13px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2);
+    font-weight: 800; cursor: pointer; transition: border-color .15s, background .15s;
   }
-
-  .lotto-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    min-height: 50px;
+  .btn:hover { border-color: var(--muted); }
+  .btn.hot {
+    border: none; color: #fff;
+    background: linear-gradient(135deg, #ff3d5a, #ff9f1c);
+    box-shadow: 0 6px 18px rgba(255, 61, 90, .35);
   }
+  .btn.full { grid-column: 1 / -1; }
+  .btn.ghost { background: transparent; color: var(--muted); }
 
-  .round {
-    width: 35px;
-    flex: 0 0 35px;
-    font-size: 14px;
-    font-weight: bold;
-    text-align: right;
-    color: var(--round-text);
-  }
-
+  /* 추첨 */
+  .draw-title { text-align: center; color: var(--muted); font-weight: 700; margin-bottom: 10px; font-size: 14px; }
+  .balls { display: flex; justify-content: center; align-items: center; gap: 7px; flex-wrap: wrap; }
   .ball {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 18px;
-    color: #fff;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-    animation: pop 0.4s ease;
-    transition: all 0.3s ease;
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 17px; color: #fff;
+    box-shadow: inset -4px -6px 10px rgba(0, 0, 0, .25), inset 4px 4px 8px rgba(255, 255, 255, .35), 0 4px 10px rgba(0, 0, 0, .4);
+    flex: none;
   }
-
-  @keyframes pop {
-    from { transform: scale(0); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
-
   .ball.mystery {
     background: radial-gradient(circle at 30% 30%, #4b5563, #1f2937);
-    color: #ffcc00;
-    border: 2px dashed #ffcc00;
-    box-sizing: border-box;
-    animation: shake 0.5s infinite alternate;
+    color: var(--gold); border: 2px dashed var(--gold);
+    animation: shake .5s infinite alternate;
   }
-
-  @keyframes shake {
-    from { transform: rotate(-5deg); }
-    to { transform: rotate(5deg); }
-  }
-
-  /* 로또 공 색상 규칙: 1-10 노랑, 11-20 파랑, 21-30 빨강, 31-40 회색, 41-45 초록 */
+  .ball.pop { animation: pop .35s ease; }
+  @keyframes shake { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+  @keyframes pop { from { transform: scale(0); } 70% { transform: scale(1.15); } to { transform: scale(1); } }
+  .plus { font-weight: 900; color: var(--muted); font-size: 20px; }
   .c1 { background: #fbc400; color: #333; }
   .c2 { background: #69c8f2; }
   .c3 { background: #ff7272; }
   .c4 { background: #aaaaaa; }
   .c5 { background: #b0d840; color: #333; }
+  .skip { display: block; margin: 12px auto 0; background: none; border: none; color: var(--muted); cursor: pointer; font-weight: 700; text-decoration: underline; }
 
-  button {
-    padding: 14px 32px;
-    font-size: 16px;
-    font-weight: bold;
-    border: none;
-    border-radius: 30px;
-    background: var(--button-bg);
-    color: var(--button-text);
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
+  /* 결과 */
+  .headline { text-align: center; margin: 4px 0 14px; }
+  .headline .big { font-size: 26px; font-weight: 900; letter-spacing: -.02em; }
+  .headline .msg { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .headline.win .big { color: var(--gold); text-shadow: 0 0 20px rgba(255, 207, 63, .5); }
+  .headline.lose .big { color: var(--lose); }
+  .enhance {
+    display: inline-block; margin-top: 8px; padding: 5px 14px; border-radius: 999px; font-weight: 900; font-size: 14px;
   }
+  .enhance.ok { background: rgba(57, 224, 138, .15); color: var(--win); }
+  .enhance.fail { background: rgba(255, 92, 108, .15); color: var(--lose); }
 
-  button:active {
-    transform: scale(0.95);
+  table.ranks { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  table.ranks th, table.ranks td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+  table.ranks th { color: var(--muted); font-weight: 700; font-size: 12.5px; }
+  table.ranks th:first-child, table.ranks td:first-child { text-align: left; }
+  table.ranks tr.hit td { color: var(--text); font-weight: 800; }
+  table.ranks tr.miss td { color: #5b6189; }
+  table.ranks tr.r1.hit td:first-child b { color: var(--gold); }
+  table.ranks .rule { color: var(--muted); font-weight: 600; font-size: 12px; }
+  table.ranks .per { color: var(--muted); font-weight: 600; font-size: 12px; }
+  table.ranks td:nth-child(3) { white-space: nowrap; }
+  table.ranks tr.miss .rule, table.ranks tr.miss .per { color: #4a5078; }
+  .summary { margin-top: 12px; display: grid; gap: 4px; font-size: 14px; }
+  .summary div { display: flex; justify-content: space-between; color: var(--muted); }
+  .summary b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .summary .total { margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 16px; }
+  .summary .total b.up { color: var(--win); }
+  .summary .total b.down { color: var(--lose); }
+
+  .tickets { margin-top: 14px; display: grid; gap: 6px; }
+  .ticket { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 10px; background: #0f1222; }
+  .ticket .rank { width: 38px; flex: none; font-weight: 900; font-size: 13px; color: var(--gold); }
+  .ticket .ball { width: 30px; height: 30px; font-size: 12.5px; box-shadow: none; }
+  .ticket .ball.dim { background: #262b47; color: #6b7199; }
+  .ticket .ball.bonus { outline: 2px solid #fff; outline-offset: 1px; }
+  .more-tickets { color: var(--muted); font-size: 13px; text-align: center; margin-top: 4px; }
+
+  /* 기록 */
+  .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .gs { background: #0f1222; border-radius: 12px; padding: 10px 12px; }
+  .gs small { display: block; color: var(--muted); font-size: 12px; font-weight: 700; }
+  .gs b { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .history { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  .history li { display: grid; grid-template-columns: 48px 1fr auto; gap: 8px; padding: 7px 10px; border-radius: 10px; background: #0f1222; align-items: center; }
+  .history .n { color: var(--muted); font-weight: 700; }
+  .history .up { color: var(--win); font-weight: 800; }
+  .history .down { color: var(--lose); font-weight: 800; }
+  .hof { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .hof li { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 10px; background: #0f1222; font-size: 14px; }
+  .hof li span:first-child { color: var(--muted); }
+  .empty { color: var(--muted); font-size: 13.5px; text-align: center; padding: 10px 0; }
+
+  footer { margin-top: 18px; text-align: center; color: #6b7199; font-size: 12.5px; line-height: 1.7; }
+  footer button { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 12.5px; }
+
+  /* 모달 */
+  .modal { position: fixed; inset: 0; z-index: 30; background: rgba(4, 5, 12, .8); display: grid; place-items: center; padding: 16px; backdrop-filter: blur(4px); }
+  .modal .card { width: min(100%, 420px); text-align: center; margin: 0; }
+  .modal h2 { margin: 6px 0 6px; font-size: 24px; }
+  .modal p { color: var(--muted); margin: 0 0 14px; }
+
+  /* 효과 */
+  .flash { position: fixed; inset: 0; pointer-events: none; z-index: 20; opacity: 0; }
+  .flash.gold { background: radial-gradient(circle, rgba(255, 207, 63, .45), transparent 70%); animation: flash .9s ease; }
+  .flash.red { background: radial-gradient(circle, rgba(255, 60, 80, .35), transparent 70%); animation: flash .6s ease; }
+  @keyframes flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+  .shake-screen { animation: screenShake .45s ease; }
+  @keyframes screenShake {
+    0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); }
+    60% { transform: translateX(-5px); } 80% { transform: translateX(3px); }
   }
+  .confetti { position: fixed; top: -12px; width: 9px; height: 14px; z-index: 25; pointer-events: none; border-radius: 2px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: .9; } }
 
-  #theme-toggle {
-    min-width: 150px;
+  @media (max-width: 420px) {
+    .balls { gap: 5px; }
+    .ball { width: 35px; height: 35px; font-size: 14px; }
+    .ticket .ball { width: 26px; height: 26px; font-size: 11.5px; }
+    .ticket .rank { width: 32px; }
+    .quick { grid-template-columns: repeat(4, 1fr); }
+    .quick button { font-size: 13px; }
   }
-
-  .contact-card {
-    width: min(100%, 620px);
-    background: var(--panel);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 24px;
-    padding: 24px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-    backdrop-filter: blur(10px);
-    margin-top: 8px;
+  @media (max-width: 370px) {
+    .balls { gap: 4px; }
+    .ball { width: 31px; height: 31px; font-size: 13px; }
+    .card { padding: 16px 14px; }
   }
-
-  .contact-card h2 {
-    margin: 0 0 8px;
-    font-size: 22px;
-    text-align: center;
-  }
-
-  .contact-card p {
-    margin: 0 0 20px;
-    text-align: center;
-    color: var(--text);
-    opacity: 0.85;
-    line-height: 1.5;
-  }
-
-  .contact-form {
-    display: grid;
-    gap: 16px;
-  }
-
-  .field-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    text-align: left;
-  }
-
-  .form-group label {
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--text);
-  }
-
-  .form-group input,
-  .form-group textarea,
-  .form-group select {
-    width: 100%;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 12px;
-    padding: 12px 14px;
-    font-size: 15px;
-    color: var(--input-text);
-    background: var(--input-bg);
-    outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .form-group textarea {
-    min-height: 140px;
-    resize: vertical;
-  }
-
-  .form-group input:focus,
-  .form-group textarea:focus,
-  .form-group select:focus {
-    border-color: #ffcc00;
-    box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.15);
-  }
-
-  .submit-row {
-    display: flex;
-    justify-content: center;
-  }
-
-  .submit-row button {
-    width: 100%;
-    max-width: 220px;
-  }
-
-  .form-status {
-    min-height: 24px;
-    text-align: center;
-    font-weight: bold;
-    margin-top: 4px;
-  }
-
-  .form-status.success {
-    color: #a7f3d0;
-  }
-
-  .form-status.error {
-    color: #fca5a5;
-  }
-
-  @media (max-width: 520px) {
-    #balls {
-      gap: 10px;
-    }
-
-    .lotto-row {
-      gap: 5px;
-    }
-
-    .round {
-      width: 25px;
-      flex-basis: 25px;
-      font-size: 12px;
-    }
-
-    .ball {
-      width: 38px;
-      height: 38px;
-      font-size: 15px;
-    }
-
-    .input-container {
-      flex-direction: column;
-      padding: 12px 18px;
-    }
-
-    .controls {
-      flex-direction: column;
-    }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   }
 </style>
 </head>
-<body data-theme="dark">
-  <div class="app">
-    <h1>🎱 로또 번호 추첨기</h1>
+<body>
+<div class="app" id="app">
+  <header>
+    <h1>🎰 로또 강화하기</h1>
+    <p class="sub">10억으로 시작해서 어디까지 불릴 수 있을까?</p>
+  </header>
 
-    <div class="controls">
-      <button id="theme-toggle" type="button" aria-label="다크 모드 전환">☀️ 라이트 모드</button>
-      <button id="draw-btn" type="button" onclick="drawLotto()">번호 추첨하기</button>
+  <!-- 자산 -->
+  <section class="card wallet">
+    <div class="wallet-label">보유 자금</div>
+    <div class="money" id="money">10억원</div>
+    <div class="delta" id="delta"></div>
+    <div class="stats-row">
+      <span class="pill"><small>강화</small> <span class="stage" id="stage">+0</span></span>
+      <span class="pill"><small>회차</small> <span id="round">0회</span></span>
+      <span class="pill" id="title">🙂 소시민</span>
     </div>
+  </section>
 
-    <div class="input-container">
-      <label for="game-count">추첨할 세트 수 (1~10):</label>
-      <input type="number" id="game-count" min="1" max="10" value="5">
+  <!-- 구매 -->
+  <section class="card buy" id="buy-card">
+    <h2>🎟️ 로또 몇 장 살까?</h2>
+    <label class="count-input">
+      <input id="count" type="text" inputmode="numeric" autocomplete="off" value="1,000" aria-label="구매할 로또 수">
+      <span>장</span>
+    </label>
+    <div class="quick">
+      <button type="button" data-add="1">+1</button>
+      <button type="button" data-add="10">+10</button>
+      <button type="button" data-add="100">+100</button>
+      <button type="button" data-add="1000">+1천</button>
+      <button type="button" data-add="10000">+1만</button>
+      <button type="button" data-add="100000">+10만</button>
+      <button type="button" class="max" data-max>올인</button>
+      <button type="button" class="clear" data-clear>초기화</button>
     </div>
+    <div class="cost"><span>한 장 1,000원 · 한 번에 최대 100만 장</span><span id="cost">비용 <b>100만원</b></span></div>
+    <button class="big-btn" id="buy-btn" type="button">🎱 구매하고 추첨하기</button>
+  </section>
 
-    <div id="countdown" style="display: none;"></div>
-    <div id="announcement" style="display: none;"></div>
+  <!-- 추첨 + 결과 -->
+  <section class="card" id="draw-card" hidden>
+    <div class="draw-title" id="draw-title">이번 회차 당첨 번호</div>
+    <div class="balls" id="win-balls"></div>
+    <button class="skip" id="skip" type="button">바로 결과 보기</button>
+    <div id="result" class="result" hidden></div>
+  </section>
 
-    <div id="balls"></div>
+  <!-- 내 기록 -->
+  <section class="card">
+    <h2 class="section-title">📊 내 기록</h2>
+    <div class="grid-stats" id="grid-stats"></div>
+    <ul class="history" id="history"></ul>
+  </section>
 
-    <div class="contact-card">
-      <h2>🤝 제휴 문의</h2>
-      <p>프로젝트 협업, 광고 제안, 서비스 제휴, 상담 요청을 남겨주시면 빠르게 답변드리겠습니다.</p>
+  <section class="card">
+    <h2 class="section-title">🏆 명예의 전당 <small style="color:var(--muted);font-weight:600;font-size:13px">은퇴할 때의 자산</small></h2>
+    <ul class="hof" id="hof"></ul>
+  </section>
 
-      <form class="contact-form" action="https://formspree.io/f/xdeowvlw" method="POST" accept-charset="UTF-8">
-        <div class="field-row">
-          <div class="form-group">
-            <label for="name">이름</label>
-            <input id="name" name="name" type="text" placeholder="홍길동" required>
-          </div>
-          <div class="form-group">
-            <label for="company">회사/브랜드</label>
-            <input id="company" name="company" type="text" placeholder="예: ABC Corp">
-          </div>
-        </div>
+  <footer>
+    실제 로또 확률(1등 8,145,060분의 1)과 평균적인 당첨금·세금으로 계산한 시뮬레이션이에요.<br>
+    실제 로또는 한 사람이 한 회차에 10만 원(100장)까지만 살 수 있고, 평균적으로 산 돈의 절반 정도만 돌려줘요.<br>
+    <button type="button" id="reset-btn">처음부터 다시 하기</button>
+  </footer>
+</div>
 
-        <div class="field-row">
-          <div class="form-group">
-            <label for="email">이메일</label>
-            <input id="email" name="email" type="email" placeholder="you@example.com" required>
-          </div>
-          <div class="form-group">
-            <label for="budget">예산 범위</label>
-            <select id="budget" name="budget">
-              <option value="">선택해주세요</option>
-              <option value="10만원 미만">10만원 미만</option>
-              <option value="10~50만원">10~50만원</option>
-              <option value="50~100만원">50~100만원</option>
-              <option value="100만원 이상">100만원 이상</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="message">제휴 내용</label>
-          <textarea id="message" name="message" placeholder="협업 목적, 일정, 기대 사항 등을 적어주세요." required></textarea>
-        </div>
-
-        <div class="submit-row">
-          <button type="submit">문의 보내기</button>
-        </div>
-        <div class="form-status" aria-live="polite"></div>
-      </form>
-    </div>
-  </div>
+<div class="flash" id="flash"></div>
+<div id="modal-root"></div>
 
 <script>
-  let countdownInterval = null;
-  const themeToggle = document.getElementById('theme-toggle');
+(() => {
+  'use strict';
 
-  function applyTheme(theme) {
-    document.body.dataset.theme = theme;
-    themeToggle.textContent = theme === 'light' ? '🌙 다크 모드' : '☀️ 라이트 모드';
-    localStorage.setItem('lotto-theme', theme);
+  // ───────── 규칙 ─────────
+  const START_MONEY = 1_000_000_000;
+  const TICKET_PRICE = 1_000;
+  const MAX_PER_ROUND = 1_000_000;
+  const TOTAL = 8_145_060;                     // 45개 중 6개 조합 수
+  const WAYS = [0, 1, 6, 228, 11_115, 182_780]; // 등수별 경우의 수 (1~5등)
+  const RANK_NAMES = ['낙첨', '1등', '2등', '3등', '4등', '5등'];
+  const RANK_RULES = ['', '6개 일치', '5개+보너스', '5개 일치', '4개 일치', '3개 일치'];
+
+  // 1~3등은 회차마다 달라지는 금액(실제 평균 범위), 4·5등은 고정
+  function rollPrizes() {
+    const between = (a, b, unit) => Math.round((a + Math.random() * (b - a)) / unit) * unit;
+    return [0, between(1.2e9, 3.2e9, 100), between(4e7, 8e7, 100), between(1.2e6, 2e6, 100), 50_000, 5_000];
   }
 
-  function getPreferredTheme() {
-    const savedTheme = localStorage.getItem('lotto-theme');
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      return savedTheme;
+  // 복권 당첨금 세금: 200만원 이하 비과세, 3억까지 22%, 3억 초과분 33%
+  function taxOf(prize) {
+    if (prize <= 2_000_000) return 0;
+    if (prize <= 300_000_000) return Math.floor(prize * 0.22);
+    return Math.floor(300_000_000 * 0.22 + (prize - 300_000_000) * 0.33);
+  }
+
+  // ───────── 상태 ─────────
+  const fresh = () => ({
+    money: START_MONEY, round: 0, stage: 0, bestStage: 0, bestMoney: START_MONEY,
+    tickets: 0, spent: 0, won: 0, firsts: 0, history: [], lastCount: 1000,
+  });
+  const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+  let S = Object.assign(fresh(), load('lotto-enhance', {}));
+  let hof = load('lotto-enhance-hof', []);
+  let last = null;         // 직전 회차 결과
+  let drawing = false;
+  let skipDraw = null;
+
+  // ───────── 유틸 ─────────
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => Math.round(n).toLocaleString('ko-KR');
+
+  function won(n) {
+    const neg = n < 0;
+    n = Math.abs(Math.round(n));
+    const jo = Math.floor(n / 1e12), eok = Math.floor((n % 1e12) / 1e8), man = Math.floor((n % 1e8) / 1e4), rest = n % 1e4;
+    const parts = [];
+    if (jo) parts.push(fmt(jo) + '조');
+    if (eok) parts.push(fmt(eok) + '억');
+    if (man) parts.push(fmt(man) + '만');
+    if (rest || !parts.length) parts.push(fmt(rest));
+    return (neg ? '-' : '') + parts.join(' ') + '원';
+  }
+  const signed = (n) => (n > 0 ? '+' : '') + won(n);
+
+  function titleOf(m) {
+    if (m < 1e7) return '😵 파산 직전';
+    if (m < 1e8) return '🥲 개미';
+    if (m < 1e9) return '😐 서민';
+    if (m < 5e9) return '🙂 소시민';
+    if (m < 1e10) return '💰 부자';
+    if (m < 1e11) return '💎 자산가';
+    if (m < 1e12) return '🏰 재벌';
+    return '👑 로또의 신';
+  }
+  const stageClass = (s) => (s >= 10 ? 's4' : s >= 7 ? 's3' : s >= 4 ? 's2' : s >= 1 ? 's1' : '');
+  const colorClass = (n) => (n <= 10 ? 'c1' : n <= 20 ? 'c2' : n <= 30 ? 'c3' : n <= 40 ? 'c4' : 'c5');
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  function sample(arr, k) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a.slice(0, k);
+  }
+
+  // ───────── 추첨 로직 ─────────
+  function drawWinning() {
+    const all = Array.from({ length: 45 }, (_, i) => i + 1);
+    const seven = sample(all, 7);
+    return { nums: seven.slice(0, 6).sort((a, b) => a - b), bonus: seven[6] };
+  }
+
+  // 한 장마다 0 ~ 8,145,059 중 하나를 뽑으면 실제 로또와 똑같은 확률로 등수가 나온다
+  function simulate(n) {
+    const t1 = WAYS[1], t2 = t1 + WAYS[2], t3 = t2 + WAYS[3], t4 = t3 + WAYS[4], t5 = t4 + WAYS[5];
+    const c = [0, 0, 0, 0, 0, 0];
+    for (let i = 0; i < n; i++) {
+      const r = Math.floor(Math.random() * TOTAL);
+      if (r >= t5) continue;
+      if (r < t1) c[1]++; else if (r < t2) c[2]++; else if (r < t3) c[3]++; else if (r < t4) c[4]++; else c[5]++;
     }
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    c[0] = n - c[1] - c[2] - c[3] - c[4] - c[5];
+    return c;
   }
 
-  themeToggle.addEventListener('click', () => {
-    const nextTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
-    applyTheme(nextTheme);
+  // 등수에 맞는 실제 번호 조합 만들기 (화면에 보여주기용)
+  function makeTicket(rank, win) {
+    const winSet = new Set(win.nums);
+    const others = [];   // 당첨번호가 아닌 39개 (보너스 포함)
+    for (let i = 1; i <= 45; i++) if (!winSet.has(i)) others.push(i);
+    const othersNoBonus = others.filter((x) => x !== win.bonus);
+    let nums;
+    if (rank === 1) nums = win.nums.slice();
+    else if (rank === 2) nums = [...sample(win.nums, 5), win.bonus];
+    else if (rank === 3) nums = [...sample(win.nums, 5), pick(othersNoBonus)];
+    else if (rank === 4) nums = [...sample(win.nums, 4), ...sample(others, 2)];
+    else nums = [...sample(win.nums, 3), ...sample(others, 3)];
+    return nums.sort((a, b) => a - b);
+  }
+
+  function play(count) {
+    const cost = count * TICKET_PRICE;
+    const win = drawWinning();
+    const prizes = rollPrizes();
+    const counts = simulate(count);
+    let gross = 0, tax = 0;
+    for (let r = 1; r <= 5; r++) {
+      gross += counts[r] * prizes[r];
+      tax += counts[r] * taxOf(prizes[r]);
+    }
+    const net = gross - tax;
+    const profit = net - cost;
+    const best = counts.findIndex((c, r) => r > 0 && c > 0);
+
+    // 보여줄 당첨 용지 (높은 등수부터 최대 12장)
+    const shown = [];
+    for (let r = 1; r <= 5 && shown.length < 12; r++) {
+      for (let i = 0; i < counts[r] && shown.length < 12; i++) shown.push({ rank: r, nums: makeTicket(r, win) });
+    }
+    const winners = counts[1] + counts[2] + counts[3] + counts[4] + counts[5];
+
+    const prevStage = S.stage;
+    S.round++;
+    S.money += profit;
+    S.tickets += count;
+    S.spent += cost;
+    S.won += net;
+    S.firsts += counts[1];
+    S.stage = profit > 0 ? S.stage + 1 : 0;
+    S.bestStage = Math.max(S.bestStage, S.stage);
+    S.bestMoney = Math.max(S.bestMoney, S.money);
+    S.lastCount = count;
+    S.history.unshift({ n: S.round, count, best: best === -1 ? 0 : best, profit, money: S.money });
+    S.history = S.history.slice(0, 30);
+    save('lotto-enhance', S);
+
+    return { count, cost, win, prizes, counts, gross, tax, net, profit, best: best === -1 ? 0 : best, shown, winners, prevStage };
+  }
+
+  // ───────── 화면 ─────────
+  function parseCount() {
+    const n = parseInt(String($('count').value).replace(/[^\d]/g, ''), 10);
+    return Number.isFinite(n) ? n : 0;
+  }
+  function setCount(n) {
+    n = Math.max(0, Math.min(n, MAX_PER_ROUND));
+    $('count').value = n ? fmt(n) : '';
+    updateCost();
+  }
+  const maxAffordable = () => Math.min(MAX_PER_ROUND, Math.floor(S.money / TICKET_PRICE));
+
+  function updateCost() {
+    const n = parseCount();
+    const cost = n * TICKET_PRICE;
+    const over = cost > S.money;
+    $('cost').innerHTML = over
+      ? `<span class="warn">돈이 모자라요 (최대 ${fmt(maxAffordable())}장)</span>`
+      : `비용 <b>${won(cost)}</b>`;
+    $('buy-btn').disabled = drawing || n < 1 || over;
+    $('buy-btn').textContent = n >= 1 ? `🎱 ${fmt(n)}장 구매하고 추첨하기` : '🎱 수량을 입력하세요';
+  }
+
+  function renderWallet(delta) {
+    $('money').textContent = won(S.money);
+    $('round').textContent = S.round + '회';
+    $('title').textContent = titleOf(S.money);
+    const st = $('stage');
+    st.textContent = '+' + S.stage;
+    st.className = 'stage ' + stageClass(S.stage);
+    const d = $('delta');
+    if (delta) {
+      d.textContent = signed(delta);
+      d.className = 'delta show ' + (delta > 0 ? 'up' : 'down');
+    } else {
+      d.className = 'delta';
+    }
+  }
+
+  function renderStats() {
+    const rate = S.spent ? (S.won / S.spent) * 100 : 0;
+    $('grid-stats').innerHTML = [
+      ['총 구매', fmt(S.tickets) + '장'],
+      ['쓴 돈', won(S.spent)],
+      ['받은 돈 (세후)', won(S.won)],
+      ['회수율', S.spent ? rate.toFixed(1) + '%' : '-'],
+      ['1등 당첨', fmt(S.firsts) + '번'],
+      ['최고 강화', '+' + S.bestStage],
+      ['최고 자산', won(S.bestMoney)],
+      ['현재 손익', signed(S.money - START_MONEY)],
+    ].map(([k, v]) => `<div class="gs"><small>${k}</small><b>${v}</b></div>`).join('');
+
+    $('history').innerHTML = S.history.length
+      ? S.history.slice(0, 10).map((h) => `<li>
+          <span class="n">${h.n}회</span>
+          <span>${fmt(h.count)}장 · ${h.best ? RANK_NAMES[h.best] : '꽝'}</span>
+          <span class="${h.profit > 0 ? 'up' : 'down'}">${signed(h.profit)}</span>
+        </li>`).join('')
+      : '<li style="display:block" class="empty">아직 산 로또가 없어요</li>';
+
+    $('hof').innerHTML = hof.length
+      ? hof.map((h, i) => `<li><span>${['🥇', '🥈', '🥉', '4위', '5위'][i]} ${h.date} · ${h.rounds}회차 은퇴</span><b>${won(h.money)}</b></li>`).join('')
+      : '<li class="empty" style="display:block">은퇴하면 여기에 기록돼요</li>';
+  }
+
+  function ballHtml(n, extra = '') {
+    return `<div class="ball ${colorClass(n)} ${extra}">${n}</div>`;
+  }
+
+  // 당첨 번호 하나씩 공개
+  function revealBalls(win, onDone) {
+    const box = $('win-balls');
+    const order = [...win.nums, win.bonus];
+    box.innerHTML = win.nums.map(() => '<div class="ball mystery">?</div>').join('') + '<span class="plus">+</span><div class="ball mystery">?</div>';
+    const slots = box.querySelectorAll('.ball');
+    let i = 0, timer = null, finished = false;
+    const showOne = (k) => {
+      const n = order[k];
+      slots[k].className = `ball ${colorClass(n)} pop`;
+      slots[k].textContent = n;
+    };
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearInterval(timer);
+      for (let k = i; k < order.length; k++) showOne(k);
+      skipDraw = null;
+      $('skip').hidden = true;
+      onDone();
+    };
+    skipDraw = finish;
+    $('skip').hidden = false;
+    timer = setInterval(() => {
+      showOne(i++);
+      if (i >= order.length) finish();
+    }, 320);
+  }
+
+  const MSG = {
+    1: ['인생 역전!!! 🎉', '이게 되네?!', '전설이 탄생했다'],
+    2: ['2등도 대박이에요!', '보너스 번호가 살렸다', '아깝다 1등…!'],
+    3: ['3등 당첨! 나쁘지 않아요', '조금만 더…!'],
+    4: ['4등이라도 어디예요', '본전은 못 찾았지만…'],
+    5: ['5천원짜리 위로…', '커피 한 잔 값 획득'],
+    0: ['전부 꽝… 로또는 냉정하다', '종이 쪼가리만 남았다', '다음엔 되겠지…?'],
+  };
+
+  function renderResult(r) {
+    const el = $('result');
+    const winRound = r.profit > 0;
+    const isWin = r.best >= 1 && r.best <= 3;
+    const headClass = winRound || isWin ? 'win' : 'lose';
+    const bigText = r.best ? `${RANK_NAMES[r.best]} 당첨${r.counts[r.best] > 1 ? ` ×${fmt(r.counts[r.best])}` : ''}${r.best === 1 ? '!!!' : '!'}` : '💥 전부 꽝';
+    const enhance = winRound
+      ? `<span class="enhance ok">⚔️ 강화 성공! +${r.prevStage} → +${S.stage}</span>`
+      : `<span class="enhance fail">💔 강화 실패… +${r.prevStage} → +0</span>`;
+
+    const rows = [1, 2, 3, 4, 5].map((k) => `
+      <tr class="r${k} ${r.counts[k] ? 'hit' : 'miss'}">
+        <td><b>${RANK_NAMES[k]}</b> <small class="rule">${RANK_RULES[k]}</small><div class="per">1장 ${won(r.prizes[k])}</div></td>
+        <td>${fmt(r.counts[k])}장</td>
+        <td>${won(r.counts[k] * r.prizes[k])}</td>
+      </tr>`).join('');
+
+    const winSet = new Set(r.win.nums);
+    const tickets = r.shown.map((t) => `
+      <div class="ticket"><span class="rank">${RANK_NAMES[t.rank]}</span>
+        ${t.nums.map((n) => (winSet.has(n) ? ballHtml(n) : n === r.win.bonus && t.rank === 2 ? ballHtml(n, 'bonus') : `<div class="ball dim">${n}</div>`)).join('')}
+      </div>`).join('');
+
+    const canReinvest = r.net >= TICKET_PRICE;
+    const reinvestN = Math.min(MAX_PER_ROUND, Math.floor(Math.min(r.net, S.money) / TICKET_PRICE));
+    const againN = Math.min(r.count, maxAffordable());
+
+    el.innerHTML = `
+      <div class="headline ${headClass}">
+        <div class="big">${bigText}</div>
+        <div class="msg">${pick(MSG[r.best])}</div>
+        ${enhance}
+      </div>
+      <table class="ranks">
+        <thead><tr><th>등수</th><th>당첨</th><th>합계</th></tr></thead>
+        <tbody>${rows}
+          <tr class="miss"><td><b>낙첨</b></td><td>${fmt(r.counts[0])}장</td><td>-</td></tr>
+        </tbody>
+      </table>
+      <div class="summary">
+        <div><span>당첨금 (세전)</span><b>${won(r.gross)}</b></div>
+        <div><span>세금</span><b>${r.tax ? '-' + won(r.tax) : '0원'}</b></div>
+        <div><span>로또 구매 비용 (${fmt(r.count)}장)</span><b>-${won(r.cost)}</b></div>
+        <div class="total"><span>이번 회차 손익</span><b class="${r.profit > 0 ? 'up' : 'down'}">${signed(r.profit)}</b></div>
+      </div>
+      ${r.shown.length ? `<div class="tickets">${tickets}</div>${r.winners > r.shown.length ? `<div class="more-tickets">외 ${fmt(r.winners - r.shown.length)}장 당첨</div>` : ''}` : ''}
+      <div class="btn-row">
+        ${canReinvest && reinvestN >= 1 ? `<button class="btn hot full" data-buy="${reinvestN}">🔥 당첨금 전부 걸고 한 번 더 (${fmt(reinvestN)}장)</button>` : ''}
+        ${againN >= 1 && !(canReinvest && againN === reinvestN) ? `<button class="btn" data-buy="${againN}">🔁 같은 수량 (${fmt(againN)}장)</button>` : ''}
+        <button class="btn" data-change>✏️ 수량 바꾸기</button>
+        ${S.money >= TICKET_PRICE ? `<button class="btn ghost full" data-retire>🏁 여기서 은퇴하기 (${won(S.money)} 기록)</button>` : ''}
+      </div>`;
+    el.hidden = false;
+  }
+
+  // ───────── 효과 ─────────
+  function flash(kind) {
+    const f = $('flash');
+    f.className = 'flash';
+    void f.offsetWidth;
+    f.className = 'flash ' + kind;
+  }
+  function shake() {
+    const a = $('app');
+    a.classList.remove('shake-screen');
+    void a.offsetWidth;
+    a.classList.add('shake-screen');
+  }
+  function confetti(n) {
+    const colors = ['#fbc400', '#69c8f2', '#ff7272', '#b0d840', '#c084fc', '#ffffff'];
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = pick(colors);
+      c.style.animationDuration = 1.8 + Math.random() * 1.8 + 's';
+      c.style.animationDelay = Math.random() * 0.4 + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4200);
+    }
+  }
+
+  // ───────── 진행 ─────────
+  function buy(count) {
+    if (drawing) return;
+    count = Math.min(count, maxAffordable());
+    if (count < 1) return;
+    drawing = true;
+    setCount(count);
+    updateCost();
+
+    const r = play(count);
+    last = r;
+    const card = $('draw-card');
+    card.hidden = false;
+    $('result').hidden = true;
+    $('draw-title').textContent = `${S.round}회차 당첨 번호 · ${fmt(count)}장 구매`;
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    revealBalls(r.win, () => {
+      drawing = false;
+      if (parseCount() > maxAffordable()) setCount(maxAffordable());
+      renderWallet(r.profit);
+      renderResult(r);
+      renderStats();
+      updateCost();
+      if (r.best === 1) { flash('gold'); confetti(90); }
+      else if (r.profit > 0) { flash('gold'); confetti(30); }
+      else { flash('red'); shake(); }
+      if (S.money < TICKET_PRICE) setTimeout(showBankrupt, 900);
+    });
+  }
+
+  function modal(html) {
+    const root = $('modal-root');
+    root.innerHTML = `<div class="modal"><div class="card">${html}</div></div>`;
+    return root;
+  }
+  const closeModal = () => { $('modal-root').innerHTML = ''; };
+
+  function restart() {
+    S = fresh();
+    save('lotto-enhance', S);
+    last = null;
+    $('draw-card').hidden = true;
+    renderWallet();
+    renderStats();
+    setCount(1000);
+    closeModal();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showBankrupt() {
+    const rate = S.spent ? ((S.won / S.spent) * 100).toFixed(1) : '0';
+    modal(`
+      <div style="font-size:48px">💸</div>
+      <h2>파산했습니다</h2>
+      <p>${S.round}회차 동안 ${fmt(S.tickets)}장을 사서<br>${won(S.spent)}을 쓰고 ${won(S.won)}을 돌려받았어요.<br>회수율 ${rate}% · 최고 자산 ${won(S.bestMoney)}</p>
+      <button class="big-btn" data-restart>다시 10억으로 시작</button>`);
+  }
+
+  function retire() {
+    const d = new Date();
+    hof.push({ money: S.money, rounds: S.round, date: `${d.getMonth() + 1}/${d.getDate()}` });
+    hof.sort((a, b) => b.money - a.money);
+    hof = hof.slice(0, 5);
+    save('lotto-enhance-hof', hof);
+    const rank = hof.findIndex((h) => h.money === S.money && h.rounds === S.round);
+    const profit = S.money - START_MONEY;
+    modal(`
+      <div style="font-size:48px">${profit > 0 ? '🏆' : '🏳️'}</div>
+      <h2>${won(S.money)}으로 은퇴</h2>
+      <p>${S.round}회차 · 시작보다 ${signed(profit)}<br>${rank >= 0 ? `명예의 전당 ${rank + 1}위에 올랐어요!` : '명예의 전당 5위 안에는 못 들었어요.'}</p>
+      <button class="big-btn" data-restart>새 게임 시작 (10억)</button>`);
+    renderStats();
+  }
+
+  // ───────── 이벤트 ─────────
+  $('count').addEventListener('input', () => {
+    const el = $('count');
+    const n = parseCount();
+    el.value = n ? fmt(Math.min(n, MAX_PER_ROUND)) : '';
+    updateCost();
+  });
+  $('count').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('buy-btn').click(); });
+
+  document.querySelector('.quick').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.add) setCount(parseCount() + Number(b.dataset.add));
+    else if ('max' in b.dataset) setCount(maxAffordable());
+    else if ('clear' in b.dataset) setCount(0);
   });
 
-  applyTheme(getPreferredTheme());
+  $('buy-btn').addEventListener('click', () => buy(parseCount()));
+  $('skip').addEventListener('click', () => skipDraw && skipDraw());
 
-  function getBallColorClass(num) {
-    if (num <= 10) return 'c1';
-    if (num <= 20) return 'c2';
-    if (num <= 30) return 'c3';
-    if (num <= 40) return 'c4';
-    return 'c5';
-  }
-
-  function drawLotto() {
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
+  $('result').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.buy) buy(Number(b.dataset.buy));
+    else if ('change' in b.dataset) {
+      $('buy-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => $('count').focus({ preventScroll: true }), 300);
+    } else if ('retire' in b.dataset) {
+      if (confirm(`${won(S.money)}으로 은퇴하고 명예의 전당에 기록할까요?\n게임은 10억으로 다시 시작돼요.`)) retire();
     }
+  });
 
-    const drawBtn = document.getElementById('draw-btn');
-    const gameCountInput = document.getElementById('game-count');
-    const ballsDiv = document.getElementById('balls');
-    const countdownDiv = document.getElementById('countdown');
-    const announcementDiv = document.getElementById('announcement');
+  $('modal-root').addEventListener('click', (e) => {
+    if (e.target.closest('[data-restart]')) restart();
+  });
 
-    let count = parseInt(gameCountInput.value, 10);
-    if (isNaN(count) || count < 1) {
-      alert('추첨할 세트 수는 1개 이상이어야 합니다.');
-      return;
-    }
-    if (count > 10) {
-      alert('한 번에 최대 10개 세트까지만 추첨할 수 있습니다.');
-      return;
-    }
+  $('reset-btn').addEventListener('click', () => {
+    if (confirm('지금 기록을 지우고 10억으로 다시 시작할까요? (명예의 전당은 유지돼요)')) restart();
+  });
 
-    drawBtn.disabled = true;
-    gameCountInput.disabled = true;
-    drawBtn.style.opacity = 0.5;
-    drawBtn.style.cursor = 'not-allowed';
-
-    ballsDiv.innerHTML = '';
-    announcementDiv.style.display = 'none';
-    countdownDiv.style.display = 'block';
-
-    const allGames = [];
-    for (let round = 1; round <= count; round++) {
-      const numbers = [];
-      while (numbers.length < 6) {
-        const rand = Math.floor(Math.random() * 45) + 1;
-        if (!numbers.includes(rand)) {
-          numbers.push(rand);
-        }
-      }
-      numbers.sort((a, b) => a - b);
-      allGames.push(numbers);
-    }
-
-    const ballElements = [];
-    for (let round = 1; round <= count; round++) {
-      const row = document.createElement('div');
-      row.className = 'lotto-row';
-
-      const roundLabel = document.createElement('span');
-      roundLabel.className = 'round';
-      roundLabel.textContent = `${round}회`;
-      row.appendChild(roundLabel);
-      ballsDiv.appendChild(row);
-
-      const rowBalls = [];
-      for (let i = 0; i < 6; i++) {
-        const ball = document.createElement('div');
-        ball.className = 'ball mystery';
-        ball.textContent = '?';
-        row.appendChild(ball);
-        rowBalls.push(ball);
-      }
-      ballElements.push(rowBalls);
-    }
-
-    let secondsLeft = 10;
-    countdownDiv.textContent = `⏳ 추첨 중... 결과 발표까지 ${secondsLeft}초`;
-
-    countdownInterval = setInterval(() => {
-      secondsLeft--;
-      if (secondsLeft > 0) {
-        countdownDiv.textContent = `⏳ 추첨 중... 결과 발표까지 ${secondsLeft}초`;
-      } else {
-        clearInterval(countdownInterval);
-        countdownDiv.style.display = 'none';
-
-        announcementDiv.textContent = '🎉 추첨 결과가 발표되었습니다! 🎉';
-        announcementDiv.style.display = 'block';
-
-        revealResults(allGames, ballElements, () => {
-          drawBtn.disabled = false;
-          gameCountInput.disabled = false;
-          drawBtn.style.opacity = 1;
-          drawBtn.style.cursor = 'pointer';
-        });
-      }
-    }, 1000);
-  }
-
-  function revealResults(allGames, ballElements, onComplete) {
-    let delay = 0;
-    const revealDelay = 80;
-
-    for (let roundIdx = 0; roundIdx < allGames.length; roundIdx++) {
-      const numbers = allGames[roundIdx];
-      const rowBalls = ballElements[roundIdx];
-
-      for (let i = 0; i < 6; i++) {
-        const num = numbers[i];
-        const ball = rowBalls[i];
-
-        setTimeout(() => {
-          ball.classList.remove('mystery');
-          ball.classList.add(getBallColorClass(num));
-          ball.textContent = num;
-          ball.style.animation = 'none';
-          ball.offsetHeight;
-          ball.style.animation = 'pop 0.4s ease';
-        }, delay);
-
-        delay += revealDelay;
-      }
-    }
-
-    setTimeout(onComplete, delay);
-  }
+  // ───────── 시작 ─────────
+  renderWallet();
+  renderStats();
+  setCount(Math.min(S.lastCount || 1000, maxAffordable()) || 0);
+  if (S.money < TICKET_PRICE) showBankrupt();
+})();
 </script>
-
 </body>
 </html>

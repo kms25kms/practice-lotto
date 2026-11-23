@@ -4,303 +4,148 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>로또 강화하기 — 10억으로 시작</title>
-<meta name="description" content="10억으로 시작해서 로또로 얼마나 불릴 수 있을까? 실제 확률로 돌리는 로또 강화 게임">
+<meta name="description" content="투명한 돔 추첨기에서 공을 하나씩 뽑는 로또 강화 게임. 10억으로 시작해 얼마나 불릴 수 있을까?">
 <meta property="og:title" content="로또 강화하기 — 10억으로 시작">
-<meta property="og:description" content="10억으로 시작해서 로또로 얼마나 불릴 수 있을까? 실제 확률로 돌려보세요.">
+<meta property="og:description" content="투명한 돔 추첨기에서 공을 직접 하나씩 뽑아보세요.">
 <meta property="og:type" content="website">
+<meta name="theme-color" content="#06070d">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23fbc400'/%3E%3Ctext x='32' y='42' font-size='28' font-weight='bold' text-anchor='middle' fill='%23333'%3E7%3C/text%3E%3C/svg%3E">
 <style>
   :root {
-    --bg: #0b0d17;
-    --bg-2: #141829;
-    --panel: #171b2e;
-    --panel-2: #1f2440;
-    --line: #2b3157;
-    --text: #eef0ff;
-    --muted: #9aa0c3;
+    --bg: #06070d;
+    --text: #f1f2fb;
+    --muted: #8d92b3;
+    --line: rgba(255, 255, 255, .1);
     --gold: #ffcf3f;
-    --gold-2: #ff9f1c;
     --win: #39e08a;
     --lose: #ff5c6c;
-    --accent: #7c6cff;
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
     min-height: 100vh;
-    background:
-      radial-gradient(900px 500px at 50% -10%, rgba(124, 108, 255, .25), transparent 70%),
-      radial-gradient(700px 400px at 100% 100%, rgba(255, 159, 28, .10), transparent 70%),
-      var(--bg);
+    background: var(--bg);
     color: var(--text);
     font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
     font-size: 15px;
     line-height: 1.5;
     word-break: keep-all;
+    -webkit-tap-highlight-color: transparent;
   }
   button, input { font: inherit; color: inherit; }
   [hidden] { display: none !important; }
 
-  .app { width: min(100%, 600px); margin: 0 auto; padding: 22px 16px 60px; }
-
-  header { text-align: center; margin-bottom: 18px; }
-  h1 {
-    margin: 0;
-    font-size: 30px;
-    letter-spacing: -.02em;
-    background: linear-gradient(180deg, #fff6c9, var(--gold) 55%, var(--gold-2));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    filter: drop-shadow(0 2px 10px rgba(255, 207, 63, .35));
+  /* 상단: 왼쪽 이름, 오른쪽 자금 */
+  .top {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 10px;
+    background: linear-gradient(var(--bg) 40%, transparent);
+    pointer-events: none;
   }
-  .sub { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
-
-  .card {
-    background: linear-gradient(180deg, var(--panel), var(--bg-2));
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 18px;
-    margin-bottom: 14px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
-  }
-
-  /* 자산 패널 */
-  .wallet { text-align: center; position: relative; overflow: hidden; }
-  .wallet-label { color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: .05em; }
-  .money {
-    font-size: clamp(30px, 9vw, 44px);
-    font-weight: 900;
-    letter-spacing: -.02em;
-    color: var(--gold);
-    text-shadow: 0 0 24px rgba(255, 207, 63, .35);
-    font-variant-numeric: tabular-nums;
-    line-height: 1.2;
-    margin: 2px 0 4px;
-  }
-  .delta { height: 22px; font-weight: 800; font-size: 16px; opacity: 0; transition: opacity .3s; }
+  .top > * { pointer-events: auto; }
+  .brand { font-weight: 900; font-size: 16px; letter-spacing: -.01em; padding-top: 4px; }
+  .wallet { text-align: right; }
+  .wallet-row { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .money { font-size: 21px; font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .stage { font-size: 12px; font-weight: 900; padding: 2px 8px; border-radius: 6px; background: rgba(255, 255, 255, .08); color: var(--muted); }
+  .stage.up { background: linear-gradient(135deg, #7c3aed, #c084fc); color: #fff; }
+  .stage.hot { background: linear-gradient(135deg, #ea580c, #facc15); color: #1a1200; }
+  .delta { font-size: 13px; font-weight: 800; height: 18px; opacity: 0; transition: opacity .3s; font-variant-numeric: tabular-nums; }
   .delta.show { opacity: 1; }
   .delta.up { color: var(--win); }
   .delta.down { color: var(--lose); }
-  .stats-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  .pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px; border-radius: 999px;
-    background: var(--panel-2); border: 1px solid var(--line);
-    font-size: 13.5px; font-weight: 700;
-  }
-  .pill small { color: var(--muted); font-weight: 600; }
 
-  /* 강화 단계 배지 */
-  .stage {
-    font-weight: 900; font-size: 15px; padding: 2px 10px; border-radius: 8px;
-    background: #2a2f4d; color: #c3c8e6;
-  }
-  .stage.s1 { background: linear-gradient(135deg, #2563eb, #38bdf8); color: #fff; }
-  .stage.s2 { background: linear-gradient(135deg, #7c3aed, #c084fc); color: #fff; box-shadow: 0 0 12px rgba(192, 132, 252, .6); }
-  .stage.s3 { background: linear-gradient(135deg, #ea580c, #facc15); color: #1a1200; box-shadow: 0 0 16px rgba(250, 204, 21, .7); }
-  .stage.s4 {
-    background: linear-gradient(90deg, #ff5c6c, #ffcf3f, #39e08a, #38bdf8, #c084fc, #ff5c6c);
-    background-size: 300% 100%; color: #111; animation: rainbow 2.5s linear infinite;
-    box-shadow: 0 0 20px rgba(255, 255, 255, .5);
-  }
-  @keyframes rainbow { to { background-position: 300% 0; } }
+  main { width: min(100%, 720px); margin: 0 auto; padding-bottom: 28px; }
 
-  /* 구매 패널 */
-  .buy h2, .result h2, .section-title { margin: 0 0 12px; font-size: 17px; }
-  .count-input {
-    display: flex; align-items: center; gap: 10px;
-    background: #0f1222; border: 2px solid var(--line); border-radius: 14px; padding: 8px 14px;
-    transition: border-color .2s;
+  /* 추첨기 */
+  .machine {
+    position: relative; height: min(68vh, 640px); min-height: 380px;
+    background: radial-gradient(ellipse 60% 55% at 50% 45%, rgba(110, 120, 255, .16), transparent 70%);
   }
-  .count-input:focus-within { border-color: var(--gold); }
-  .count-input input {
-    flex: 1; min-width: 0; border: none; background: none; outline: none;
-    font-size: 26px; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums;
+  .machine canvas { width: 100%; height: 100%; display: block; cursor: pointer; touch-action: manipulation; }
+  .sound {
+    position: absolute; right: 14px; bottom: 10px; width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid var(--line); background: rgba(10, 12, 24, .7); cursor: pointer; font-size: 15px;
   }
-  .count-input span { font-weight: 800; color: var(--muted); }
-  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
-  .quick button {
-    padding: 9px 0; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2);
-    font-weight: 800; font-size: 14px; cursor: pointer; transition: background .15s, border-color .15s;
-  }
-  .quick button:hover { border-color: var(--gold); }
-  .quick .max { color: var(--gold); }
-  .quick .clear { color: var(--muted); }
-  .cost { display: flex; justify-content: space-between; margin: 12px 2px 0; font-size: 14px; color: var(--muted); }
-  .cost b { color: var(--text); }
-  .cost .warn { color: var(--lose); }
+  .machine.grab canvas { cursor: crosshair; }
+  .mini { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-weight: 900; font-size: 18px; color: #fff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, .7); opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .mini.show { opacity: 1; }
+  .hint { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; color: var(--muted); font-size: 13px; pointer-events: none; transition: opacity .4s; }
 
-  .big-btn {
-    width: 100%; margin-top: 14px; padding: 16px; border: none; border-radius: 14px; cursor: pointer;
-    font-size: 18px; font-weight: 900; color: #1a1200;
-    background: linear-gradient(180deg, #ffe27a, var(--gold) 50%, var(--gold-2));
-    box-shadow: 0 8px 24px rgba(255, 159, 28, .35), inset 0 -3px 0 rgba(0, 0, 0, .15);
-    transition: transform .1s, filter .15s;
-  }
-  .big-btn:hover { filter: brightness(1.05); }
-  .big-btn:active { transform: scale(.98); }
-  .big-btn:disabled { filter: grayscale(.8) brightness(.6); cursor: not-allowed; }
-
-  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
-  .btn {
-    padding: 13px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2);
-    font-weight: 800; cursor: pointer; transition: border-color .15s, background .15s;
-  }
-  .btn:hover { border-color: var(--muted); }
-  .btn.hot {
-    border: none; color: #fff;
-    background: linear-gradient(135deg, #ff3d5a, #ff9f1c);
-    box-shadow: 0 6px 18px rgba(255, 61, 90, .35);
-  }
-  .btn.full { grid-column: 1 / -1; }
-  .btn.ghost { background: transparent; color: var(--muted); }
-
-  /* 3D 추첨기 */
-  .drum { position: relative; height: 300px; margin: -6px -6px 6px; border-radius: 14px; overflow: hidden;
-    background: radial-gradient(circle at 50% 45%, rgba(124, 108, 255, .22), transparent 65%); }
-  .drum canvas { width: 100%; height: 100%; display: block; }
-  .drum-msg { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 13px; color: var(--muted); font-weight: 700; pointer-events: none; transition: opacity .3s; }
-  .no-drum .drum { display: none; }
-  .drum canvas { cursor: pointer; touch-action: manipulation; }
-  .drum-tools { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 2; }
-  .tool {
-    border: 1px solid var(--line); background: rgba(15, 18, 34, .75); border-radius: 999px;
-    padding: 5px 11px; font-size: 12.5px; font-weight: 800; cursor: pointer; color: var(--text);
-  }
-  .tool.off { color: var(--muted); }
-  .pull-btn {
-    display: block; width: 100%; margin-top: 12px; padding: 16px; border: none; border-radius: 14px; cursor: pointer;
-    font-size: 18px; font-weight: 900; color: #fff;
-    background: linear-gradient(135deg, #7c6cff, #c084fc);
-    box-shadow: 0 8px 22px rgba(124, 108, 255, .45), inset 0 -3px 0 rgba(0, 0, 0, .2);
-    transition: transform .08s, filter .15s;
-  }
-  .pull-btn:active { transform: scale(.96); }
-  .pull-btn:disabled { filter: grayscale(.6) brightness(.7); cursor: default; }
-  .pull-btn.bonus { background: linear-gradient(135deg, #ff3d5a, #ff9f1c); box-shadow: 0 8px 22px rgba(255, 61, 90, .45); }
-  .pull-hint { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 6px; }
-  @media (max-width: 420px) { .drum { height: 250px; } }
-
-  /* 추첨 */
-  .draw-title { text-align: center; color: var(--muted); font-weight: 700; margin-bottom: 10px; font-size: 14px; }
-  .balls { display: flex; justify-content: center; align-items: center; gap: 7px; flex-wrap: wrap; }
+  /* 뽑힌 번호 */
+  .picked { display: flex; justify-content: center; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; }
   .ball {
-    width: 44px; height: 44px; border-radius: 50%;
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 900; font-size: 17px; color: #fff;
-    box-shadow: inset -4px -6px 10px rgba(0, 0, 0, .25), inset 4px 4px 8px rgba(255, 255, 255, .35), 0 4px 10px rgba(0, 0, 0, .4);
-    flex: none;
+    font-weight: 900; font-size: 14px; color: #fff;
+    box-shadow: inset -3px -4px 8px rgba(0, 0, 0, .25), inset 3px 3px 6px rgba(255, 255, 255, .35);
   }
-  .ball.mystery {
-    background: radial-gradient(circle at 30% 30%, #4b5563, #1f2937);
-    color: var(--gold); border: 2px dashed var(--gold);
-    animation: shake .5s infinite alternate;
-  }
-  .ball.mystery.still { animation: none; opacity: .55; }
-  .ball.pop { animation: pop .35s ease; }
-  @keyframes shake { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
-  @keyframes pop { from { transform: scale(0); } 70% { transform: scale(1.15); } to { transform: scale(1); } }
-  .plus { font-weight: 900; color: var(--muted); font-size: 20px; }
+  .ball.empty { background: transparent; border: 1.5px dashed rgba(255, 255, 255, .18); box-shadow: none; }
+  .ball.pop { animation: pop .4s cubic-bezier(.3, 1.6, .5, 1); }
+  @keyframes pop { from { transform: scale(.2); } to { transform: scale(1); } }
+  .plus { color: var(--muted); font-weight: 900; }
   .c1 { background: #fbc400; color: #333; }
   .c2 { background: #69c8f2; }
   .c3 { background: #ff7272; }
   .c4 { background: #aaaaaa; }
   .c5 { background: #b0d840; color: #333; }
-  .skip { display: block; margin: 12px auto 0; background: none; border: none; color: var(--muted); cursor: pointer; font-weight: 700; text-decoration: underline; }
 
-  /* 결과 */
-  .headline { text-align: center; margin: 4px 0 14px; }
-  .headline .big { font-size: 26px; font-weight: 900; letter-spacing: -.02em; }
-  .headline .msg { color: var(--muted); font-size: 14px; margin-top: 2px; }
-  .headline.win .big { color: var(--gold); text-shadow: 0 0 20px rgba(255, 207, 63, .5); }
-  .headline.lose .big { color: var(--lose); }
-  .enhance {
-    display: inline-block; margin-top: 8px; padding: 5px 14px; border-radius: 999px; font-weight: 900; font-size: 14px;
+  /* 아래 조작부 */
+  .panel { padding: 14px 16px 0; }
+  .result { text-align: center; margin-bottom: 14px; }
+  .result .head { font-size: 22px; font-weight: 900; letter-spacing: -.02em; }
+  .result .head.win { color: var(--gold); }
+  .result .detail { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .result .profit { font-size: 17px; font-weight: 900; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .result .profit.up { color: var(--win); }
+  .result .profit.down { color: var(--lose); }
+  .result .enh { font-size: 13px; font-weight: 800; color: var(--muted); margin-top: 2px; }
+  .chip-btn {
+    margin-top: 10px; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255, 159, 28, .5);
+    background: rgba(255, 159, 28, .12); color: #ffbe5c; font-weight: 800; font-size: 13.5px; cursor: pointer;
   }
-  .enhance.ok { background: rgba(57, 224, 138, .15); color: var(--win); }
-  .enhance.fail { background: rgba(255, 92, 108, .15); color: var(--lose); }
 
-  table.ranks { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
-  table.ranks th, table.ranks td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; }
-  table.ranks th { color: var(--muted); font-weight: 700; font-size: 12.5px; }
-  table.ranks th:first-child, table.ranks td:first-child { text-align: left; }
-  table.ranks tr.hit td { color: var(--text); font-weight: 800; }
-  table.ranks tr.miss td { color: #5b6189; }
-  table.ranks tr.r1.hit td:first-child b { color: var(--gold); }
-  table.ranks .rule { color: var(--muted); font-weight: 600; font-size: 12px; }
-  table.ranks .per { color: var(--muted); font-weight: 600; font-size: 12px; }
-  table.ranks td:nth-child(3) { white-space: nowrap; }
-  table.ranks tr.miss .rule, table.ranks tr.miss .per { color: #4a5078; }
-  .summary { margin-top: 12px; display: grid; gap: 4px; font-size: 14px; }
-  .summary div { display: flex; justify-content: space-between; color: var(--muted); }
-  .summary b { color: var(--text); font-variant-numeric: tabular-nums; }
-  .summary .total { margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 16px; }
-  .summary .total b.up { color: var(--win); }
-  .summary .total b.down { color: var(--lose); }
-
-  .tickets { margin-top: 14px; display: grid; gap: 6px; }
-  .ticket { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 10px; background: #0f1222; }
-  .ticket .rank { width: 38px; flex: none; font-weight: 900; font-size: 13px; color: var(--gold); }
-  .ticket .ball { width: 30px; height: 30px; font-size: 12.5px; box-shadow: none; }
-  .ticket .ball.dim { background: #262b47; color: #6b7199; }
-  .ticket .ball.bonus { outline: 2px solid #fff; outline-offset: 1px; }
-  .more-tickets { color: var(--muted); font-size: 13px; text-align: center; margin-top: 4px; }
-
-  /* 기록 */
-  .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .gs { background: #0f1222; border-radius: 12px; padding: 10px 12px; }
-  .gs small { display: block; color: var(--muted); font-size: 12px; font-weight: 700; }
-  .gs b { font-size: 15px; font-variant-numeric: tabular-nums; }
-  .history { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
-  .history li { display: grid; grid-template-columns: 48px 1fr auto; gap: 8px; padding: 7px 10px; border-radius: 10px; background: #0f1222; align-items: center; }
-  .history .n { color: var(--muted); font-weight: 700; }
-  .history .up { color: var(--win); font-weight: 800; }
-  .history .down { color: var(--lose); font-weight: 800; }
-  .hof { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-  .hof li { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 10px; background: #0f1222; font-size: 14px; }
-  .hof li span:first-child { color: var(--muted); }
-  .empty { color: var(--muted); font-size: 13.5px; text-align: center; padding: 10px 0; }
-
-  footer { margin-top: 18px; text-align: center; color: #6b7199; font-size: 12.5px; line-height: 1.7; }
-  footer button { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 12.5px; }
-
-  /* 모달 */
-  .modal { position: fixed; inset: 0; z-index: 30; background: rgba(4, 5, 12, .8); display: grid; place-items: center; padding: 16px; backdrop-filter: blur(4px); }
-  .modal .card { width: min(100%, 420px); text-align: center; margin: 0; }
-  .modal h2 { margin: 6px 0 6px; font-size: 24px; }
-  .modal p { color: var(--muted); margin: 0 0 14px; }
-
-  /* 효과 */
-  .flash { position: fixed; inset: 0; pointer-events: none; z-index: 20; opacity: 0; }
-  .flash.gold { background: radial-gradient(circle, rgba(255, 207, 63, .45), transparent 70%); animation: flash .9s ease; }
-  .flash.red { background: radial-gradient(circle, rgba(255, 60, 80, .35), transparent 70%); animation: flash .6s ease; }
-  @keyframes flash { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
-  .shake-screen { animation: screenShake .45s ease; }
-  @keyframes screenShake {
-    0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); }
-    60% { transform: translateX(-5px); } 80% { transform: translateX(3px); }
+  .count { display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--line); padding: 4px 2px; transition: border-color .2s; }
+  .count:focus-within { border-color: var(--gold); }
+  .count input { flex: 1; min-width: 0; border: none; background: none; outline: none; font-size: 26px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .count span { color: var(--muted); font-weight: 800; }
+  .count .cost { font-size: 13px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+  .count .cost.warn { color: var(--lose); }
+  .presets { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
+  .presets::-webkit-scrollbar { display: none; }
+  .presets button {
+    flex: none; padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: transparent;
+    font-size: 13.5px; font-weight: 800; color: var(--muted); cursor: pointer;
   }
+  .presets button:hover { color: var(--text); border-color: rgba(255, 255, 255, .3); }
+
+  .main-btn {
+    width: 100%; margin-top: 14px; padding: 17px; border: none; border-radius: 16px; cursor: pointer;
+    font-size: 18px; font-weight: 900; color: #1a1200;
+    background: linear-gradient(180deg, #ffe27a, var(--gold) 55%, #ff9f1c);
+    box-shadow: 0 10px 26px rgba(255, 159, 28, .3);
+    transition: transform .08s, filter .2s;
+  }
+  .main-btn:active { transform: scale(.97); }
+  .main-btn:disabled { filter: grayscale(.7) brightness(.55); cursor: default; }
+  .main-btn.pull { color: #fff; background: linear-gradient(180deg, #a59cff, #7c6cff); box-shadow: 0 10px 26px rgba(124, 108, 255, .35); }
+  .main-btn.bonus { color: #fff; background: linear-gradient(180deg, #ff8a5c, #ff3d5a); box-shadow: 0 10px 26px rgba(255, 61, 90, .35); }
+  .skip { display: block; margin: 10px auto 0; border: none; background: none; color: var(--muted); font-size: 13px; text-decoration: underline; cursor: pointer; }
+
+  footer { text-align: center; color: #50547a; font-size: 12px; padding: 22px 16px 30px; }
+  footer button { border: none; background: none; color: inherit; text-decoration: underline; cursor: pointer; font-size: 12px; }
+
+  .modal { position: fixed; inset: 0; z-index: 30; background: rgba(3, 4, 10, .82); display: grid; place-items: center; padding: 16px; }
+  .modal-box { width: min(100%, 380px); text-align: center; background: #11132a; border: 1px solid var(--line); border-radius: 20px; padding: 26px 22px 22px; }
+  .modal-box h2 { margin: 8px 0 6px; font-size: 22px; }
+  .modal-box p { margin: 0 0 16px; color: var(--muted); }
+
   .confetti { position: fixed; top: -12px; width: 9px; height: 14px; z-index: 25; pointer-events: none; border-radius: 2px; animation: fall linear forwards; }
-  @keyframes fall { to { transform: translateY(105vh) rotate(720deg); opacity: .9; } }
-
-  @media (max-width: 420px) {
-    .balls { gap: 5px; }
-    .ball { width: 35px; height: 35px; font-size: 14px; }
-    .ticket .ball { width: 26px; height: 26px; font-size: 11.5px; }
-    .ticket .rank { width: 32px; }
-    .quick { grid-template-columns: repeat(4, 1fr); }
-    .quick button { font-size: 13px; }
-  }
-  @media (max-width: 370px) {
-    .balls { gap: 4px; }
-    .ball { width: 31px; height: 31px; font-size: 13px; }
-    .card { padding: 16px 14px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
-  }
+  @keyframes fall { to { transform: translateY(105vh) rotate(720deg); } }
+  @media (prefers-reduced-motion: reduce) { .ball.pop, .confetti { animation: none; } }
 </style>
 <script type="importmap">
 { "imports": {
@@ -310,87 +155,51 @@
 </script>
 </head>
 <body>
-<div class="app" id="app">
-  <header>
-    <h1>🎰 로또 강화하기</h1>
-    <p class="sub">10억으로 시작해서 어디까지 불릴 수 있을까?</p>
-  </header>
-
-  <!-- 자산 -->
-  <section class="card wallet">
-    <div class="wallet-label">보유 자금</div>
-    <div class="money" id="money">10억원</div>
+<header class="top">
+  <div class="brand">🎰 로또 강화</div>
+  <div class="wallet">
+    <div class="wallet-row"><span class="stage" id="stage" title="연속 흑자 횟수">+0</span><span class="money" id="money">10억원</span></div>
     <div class="delta" id="delta"></div>
-    <div class="stats-row">
-      <span class="pill"><small>강화</small> <span class="stage" id="stage">+0</span></span>
-      <span class="pill"><small>회차</small> <span id="round">0회</span></span>
-      <span class="pill" id="title">🙂 소시민</span>
-    </div>
-  </section>
+  </div>
+</header>
 
-  <!-- 구매 -->
-  <section class="card buy" id="buy-card">
-    <h2>🎟️ 로또 몇 장 살까?</h2>
-    <label class="count-input">
-      <input id="count" type="text" inputmode="numeric" autocomplete="off" value="1,000" aria-label="구매할 로또 수">
-      <span>장</span>
-    </label>
-    <div class="quick">
-      <button type="button" data-add="1">+1</button>
-      <button type="button" data-add="10">+10</button>
-      <button type="button" data-add="100">+100</button>
-      <button type="button" data-add="1000">+1천</button>
-      <button type="button" data-add="10000">+1만</button>
-      <button type="button" data-add="100000">+10만</button>
-      <button type="button" class="max" data-max>올인</button>
-      <button type="button" class="clear" data-clear>초기화</button>
-    </div>
-    <div class="cost"><span>한 장 1,000원 · 한 번에 최대 100만 장</span><span id="cost">비용 <b>100만원</b></span></div>
-    <button class="big-btn" id="buy-btn" type="button">🎱 구매하고 추첨하기</button>
-  </section>
+<main>
+  <div class="machine" id="machine">
+    <canvas aria-label="투명한 돔 로또 추첨기"></canvas>
+    <div class="hint" id="hint">추첨이 시작되면 날아다니는 공을 눌러 집으세요</div>
+    <div class="mini" id="mini"></div>
+    <button class="sound" id="sound-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
+  </div>
 
-  <!-- 추첨 + 결과 -->
-  <section class="card" id="draw-card">
-    <div class="drum" id="drum">
-      <canvas aria-label="3D 로또 추첨기 (눌러서 섞기)"></canvas>
-      <div class="drum-tools">
-        <button class="tool" id="mode-btn" type="button">✋ 직접 뽑기</button>
-        <button class="tool" id="sound-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
+  <div class="picked" id="picked"></div>
+
+  <div class="panel">
+    <div class="result" id="result" hidden></div>
+    <div id="buy-row">
+      <label class="count">
+        <input id="count" type="text" inputmode="numeric" autocomplete="off" value="1,000" aria-label="구매할 로또 장 수">
+        <span>장</span>
+        <span class="cost" id="cost"></span>
+      </label>
+      <div class="presets" id="presets">
+        <button type="button" data-set="10">10장</button>
+        <button type="button" data-set="100">100장</button>
+        <button type="button" data-set="1000">1천장</button>
+        <button type="button" data-set="10000">1만장</button>
+        <button type="button" data-set="100000">10만장</button>
+        <button type="button" data-set="max">올인</button>
       </div>
-      <div class="drum-msg" id="drum-msg">추첨기를 눌러 공을 섞어보세요</div>
     </div>
-    <div class="draw-title" id="draw-title">추첨기 대기 중</div>
-    <div class="balls" id="win-balls"></div>
-    <button class="pull-btn" id="pull-btn" type="button" hidden>🎱 공 뽑기</button>
-    <div class="pull-hint" id="pull-hint" hidden>스페이스바나 Enter로도 뽑을 수 있어요</div>
-    <button class="skip" id="skip" type="button" hidden>바로 결과 보기</button>
-    <div id="result" class="result" hidden></div>
-  </section>
+    <button class="main-btn" id="main-btn" type="button">추첨 시작</button>
+    <button class="skip" id="skip" type="button" hidden>나머지 자동으로 집기</button>
+  </div>
+</main>
 
-  <!-- 내 기록 -->
-  <section class="card">
-    <h2 class="section-title">📊 내 기록</h2>
-    <div class="grid-stats" id="grid-stats"></div>
-    <ul class="history" id="history"></ul>
-  </section>
-
-  <section class="card">
-    <h2 class="section-title">🏆 명예의 전당 <small style="color:var(--muted);font-weight:600;font-size:13px">은퇴할 때의 자산</small></h2>
-    <ul class="hof" id="hof"></ul>
-  </section>
-
-  <footer>
-    실제 로또 확률(1등 8,145,060분의 1)과 평균적인 당첨금·세금으로 계산한 시뮬레이션이에요.<br>
-    3D 추첨기: Three.js · 애니메이션: GSAP<br>
-    실제 로또는 한 사람이 한 회차에 10만 원(100장)까지만 살 수 있고, 평균적으로 산 돈의 절반 정도만 돌려줘요.<br>
-    <button type="button" id="reset-btn">처음부터 다시 하기</button>
-  </footer>
-</div>
-
-<div class="flash" id="flash"></div>
+<footer>
+  실제 로또 확률(1등 8,145,060분의 1)·평균 당첨금·세금으로 계산한 시뮬레이션 · <button type="button" id="reset-btn">처음부터</button>
+</footer>
 <div id="modal-root"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
 <script>
 (() => {
   'use strict';
@@ -399,160 +208,29 @@
   const START_MONEY = 1_000_000_000;
   const TICKET_PRICE = 1_000;
   const MAX_PER_ROUND = 1_000_000;
-  const TOTAL = 8_145_060;                     // 45개 중 6개 조합 수
-  const WAYS = [0, 1, 6, 228, 11_115, 182_780]; // 등수별 경우의 수 (1~5등)
+  const TOTAL = 8_145_060;
+  const WAYS = [0, 1, 6, 228, 11_115, 182_780];
   const RANK_NAMES = ['낙첨', '1등', '2등', '3등', '4등', '5등'];
-  const RANK_RULES = ['', '6개 일치', '5개+보너스', '5개 일치', '4개 일치', '3개 일치'];
+  const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // 1~3등은 회차마다 달라지는 금액(실제 평균 범위), 4·5등은 고정
   function rollPrizes() {
-    const between = (a, b, unit) => Math.round((a + Math.random() * (b - a)) / unit) * unit;
-    return [0, between(1.2e9, 3.2e9, 100), between(4e7, 8e7, 100), between(1.2e6, 2e6, 100), 50_000, 5_000];
+    const between = (a, b) => Math.round((a + Math.random() * (b - a)) / 100) * 100;
+    return [0, between(1.2e9, 3.2e9), between(4e7, 8e7), between(1.2e6, 2e6), 50_000, 5_000];
   }
-
-  // 복권 당첨금 세금: 200만원 이하 비과세, 3억까지 22%, 3억 초과분 33%
   function taxOf(prize) {
     if (prize <= 2_000_000) return 0;
     if (prize <= 300_000_000) return Math.floor(prize * 0.22);
     return Math.floor(300_000_000 * 0.22 + (prize - 300_000_000) * 0.33);
   }
 
-  const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const G = window.gsap || null;   // 애니메이션 라이브러리 (못 불러오면 애니메이션 없이 동작)
-  let drum = null;                 // 3D 추첨기 (못 불러오면 예전 방식)
-
-  // ───────── 소리 (Web Audio로 직접 합성, 파일 없음) ─────────
-  const Sound = (() => {
-    let ctx = null, out = null, noise = null, blower = null, lastClick = 0;
-    let on = true;
-    try { on = localStorage.getItem('lotto-sound') !== 'off'; } catch {}
-    function ensure(create) {
-      if (!on) return null;
-      if (!ctx && !create) return null;   // 사용자가 한 번 누르기 전에는 소리를 켜지 않음 (브라우저 정책)
-      if (!ctx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return null;
-        ctx = new AC();
-        out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
-        noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-        const d = noise.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      }
-      if (ctx.state === 'suspended') ctx.resume();
-      return ctx;
-    }
-    function env(g, t, peak, attack, decay) {
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(peak, t + attack);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
-    }
-    function burst(t, freq, q, peak, decay) {
-      const src = ctx.createBufferSource(); src.buffer = noise;
-      src.playbackRate.value = 0.8 + Math.random() * 0.4;
-      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
-      const g = ctx.createGain(); env(g, t, peak, 0.002, decay);
-      src.connect(f).connect(g).connect(out);
-      src.start(t, Math.random() * 0.5, decay + 0.05);
-    }
-    function tone(t, type, f0, f1, peak, dur) {
-      const o = ctx.createOscillator(); o.type = type;
-      o.frequency.setValueAtTime(f0, t);
-      if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
-      const g = ctx.createGain(); env(g, t, peak, 0.005, dur);
-      o.connect(g).connect(out); o.start(t); o.stop(t + dur + 0.05);
-    }
-    return {
-      get on() { return on; },
-      toggle() {
-        on = !on;
-        try { localStorage.setItem('lotto-sound', on ? 'on' : 'off'); } catch {}
-        if (!on) this.blower(false);
-        return on;
-      },
-      unlock() { ensure(true); },
-      // 공끼리·유리벽에 부딪히는 딸깍 소리 (세기에 따라)
-      click(power) {
-        if (!ensure()) return;
-        const now = ctx.currentTime;
-        if (now - lastClick < 0.03) return;
-        lastClick = now;
-        burst(now, 2600 + Math.random() * 2400, 9, 0.04 + power * 0.22, 0.035);
-      },
-      // 섞을 때 바람 소리
-      blower(onOff) {
-        if (onOff) {
-          if (!ensure() || blower) return;
-          const src = ctx.createBufferSource(); src.buffer = noise; src.loop = true;
-          const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700;
-          const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.4);
-          src.connect(f).connect(g).connect(out); src.start();
-          blower = { src, g, f };
-        } else if (blower && ctx) {
-          const b = blower; blower = null;
-          b.g.gain.cancelScheduledValues(ctx.currentTime);
-          b.g.gain.setValueAtTime(Math.max(b.g.gain.value, 0.0001), ctx.currentTime);
-          b.g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-          b.src.stop(ctx.currentTime + 0.55);
-        }
-      },
-      turbo() { if (blower && ctx) { blower.f.frequency.linearRampToValueAtTime(1600, ctx.currentTime + 0.6); blower.g.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.6); } },
-      calm() { if (blower && ctx) { blower.f.frequency.linearRampToValueAtTime(700, ctx.currentTime + 0.3); blower.g.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.3); } },
-      // 공이 관으로 빠져나가는 소리
-      pop() {
-        if (!ensure()) return;
-        const t = ctx.currentTime;
-        tone(t, 'sine', 260, 820, 0.25, 0.14);
-        burst(t, 1800, 4, 0.12, 0.05);
-      },
-      // 번호 공개 (k번째일수록 음이 올라감)
-      ding(k, bonus) {
-        if (!ensure()) return;
-        const t = ctx.currentTime;
-        const base = bonus ? 1046.5 : [523.3, 587.3, 659.3, 698.5, 784, 880][k] || 880;
-        tone(t, 'sine', base, null, 0.22, 0.7);
-        tone(t, 'triangle', base * 2, null, 0.06, 0.4);
-      },
-      drumroll(sec) {
-        if (!ensure()) return;
-        const t = ctx.currentTime;
-        for (let i = 0, x = 0; x < sec; i++) { burst(t + x, 1400, 1.2, 0.05 + (x / sec) * 0.12, 0.05); x += 0.07 - (x / sec) * 0.035; }
-      },
-      fanfare(big) {
-        if (!ensure()) return;
-        const t = ctx.currentTime;
-        const notes = big ? [523.3, 659.3, 784, 1046.5, 784, 1046.5, 1318.5] : [659.3, 784, 1046.5];
-        notes.forEach((f, i) => { tone(t + i * 0.12, 'triangle', f, null, 0.18, big && i === notes.length - 1 ? 1.2 : 0.3); });
-      },
-      thud() {
-        if (!ensure()) return;
-        const t = ctx.currentTime;
-        tone(t, 'sine', 180, 55, 0.4, 0.5);
-        burst(t, 300, 1, 0.15, 0.2);
-      },
-    };
-  })();
-  const buzz = (pattern) => { try { navigator.vibrate && navigator.vibrate(pattern); } catch {} };
-
-  // ───────── 상태 ─────────
-  const fresh = () => ({
-    money: START_MONEY, round: 0, stage: 0, bestStage: 0, bestMoney: START_MONEY,
-    tickets: 0, spent: 0, won: 0, firsts: 0, history: [], lastCount: 1000,
-  });
+  // ───────── 상태 (이전 버전 진행 상황 그대로 이어짐) ─────────
+  const fresh = () => ({ money: START_MONEY, round: 0, stage: 0, bestStage: 0, bestMoney: START_MONEY, tickets: 0, spent: 0, won: 0, firsts: 0, history: [], lastCount: 1000 });
   const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
-
   let S = Object.assign(fresh(), load('lotto-enhance', {}));
-  let hof = load('lotto-enhance-hof', []);
-  let last = null;         // 직전 회차 결과
-  let drawing = false;
-  let skipDraw = null;
-  let pullDraw = null;
 
-  // ───────── 유틸 ─────────
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => Math.round(n).toLocaleString('ko-KR');
-
   function won(n) {
     const neg = n < 0;
     n = Math.abs(Math.round(n));
@@ -565,35 +243,16 @@
     return (neg ? '-' : '') + parts.join(' ') + '원';
   }
   const signed = (n) => (n > 0 ? '+' : '') + won(n);
-
-  function titleOf(m) {
-    if (m < 1e7) return '😵 파산 직전';
-    if (m < 1e8) return '🥲 개미';
-    if (m < 1e9) return '😐 서민';
-    if (m < 5e9) return '🙂 소시민';
-    if (m < 1e10) return '💰 부자';
-    if (m < 1e11) return '💎 자산가';
-    if (m < 1e12) return '🏰 재벌';
-    return '👑 로또의 신';
-  }
-  const stageClass = (s) => (s >= 10 ? 's4' : s >= 7 ? 's3' : s >= 4 ? 's2' : s >= 1 ? 's1' : '');
   const colorClass = (n) => (n <= 10 ? 'c1' : n <= 20 ? 'c2' : n <= 30 ? 'c3' : n <= 40 ? 'c4' : 'c5');
-  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const buzz = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch {} };
 
-  function sample(arr, k) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-    return a.slice(0, k);
-  }
-
-  // ───────── 추첨 로직 ─────────
+  // ───────── 추첨 계산 ─────────
   function drawWinning() {
     const all = Array.from({ length: 45 }, (_, i) => i + 1);
-    const seven = sample(all, 7);
-    return { nums: seven.slice(0, 6).sort((a, b) => a - b), bonus: seven[6] };
+    for (let i = all.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [all[i], all[j]] = [all[j], all[i]]; }
+    return { nums: all.slice(0, 6).sort((a, b) => a - b), bonus: all[6] };
   }
-
-  // 한 장마다 0 ~ 8,145,059 중 하나를 뽑으면 실제 로또와 똑같은 확률로 등수가 나온다
   function simulate(n) {
     const t1 = WAYS[1], t2 = t1 + WAYS[2], t3 = t2 + WAYS[3], t4 = t3 + WAYS[4], t5 = t4 + WAYS[5];
     const c = [0, 0, 0, 0, 0, 0];
@@ -605,619 +264,293 @@
     c[0] = n - c[1] - c[2] - c[3] - c[4] - c[5];
     return c;
   }
-
-  // 등수에 맞는 실제 번호 조합 만들기 (화면에 보여주기용)
-  function makeTicket(rank, win) {
-    const winSet = new Set(win.nums);
-    const others = [];   // 당첨번호가 아닌 39개 (보너스 포함)
-    for (let i = 1; i <= 45; i++) if (!winSet.has(i)) others.push(i);
-    const othersNoBonus = others.filter((x) => x !== win.bonus);
-    let nums;
-    if (rank === 1) nums = win.nums.slice();
-    else if (rank === 2) nums = [...sample(win.nums, 5), win.bonus];
-    else if (rank === 3) nums = [...sample(win.nums, 5), pick(othersNoBonus)];
-    else if (rank === 4) nums = [...sample(win.nums, 4), ...sample(others, 2)];
-    else nums = [...sample(win.nums, 3), ...sample(others, 3)];
-    return nums.sort((a, b) => a - b);
-  }
-
   function play(count) {
     const cost = count * TICKET_PRICE;
     const win = drawWinning();
     const prizes = rollPrizes();
     const counts = simulate(count);
     let gross = 0, tax = 0;
-    for (let r = 1; r <= 5; r++) {
-      gross += counts[r] * prizes[r];
-      tax += counts[r] * taxOf(prizes[r]);
-    }
-    const net = gross - tax;
-    const profit = net - cost;
+    for (let r = 1; r <= 5; r++) { gross += counts[r] * prizes[r]; tax += counts[r] * taxOf(prizes[r]); }
+    const net = gross - tax, profit = net - cost;
     const best = counts.findIndex((c, r) => r > 0 && c > 0);
-
-    // 보여줄 당첨 용지 (높은 등수부터 최대 12장)
-    const shown = [];
-    for (let r = 1; r <= 5 && shown.length < 12; r++) {
-      for (let i = 0; i < counts[r] && shown.length < 12; i++) shown.push({ rank: r, nums: makeTicket(r, win) });
-    }
-    const winners = counts[1] + counts[2] + counts[3] + counts[4] + counts[5];
-
     const prevStage = S.stage;
-    S.round++;
-    S.money += profit;
-    S.tickets += count;
-    S.spent += cost;
-    S.won += net;
-    S.firsts += counts[1];
+    S.round++; S.money += profit; S.tickets += count; S.spent += cost; S.won += net; S.firsts += counts[1];
     S.stage = profit > 0 ? S.stage + 1 : 0;
     S.bestStage = Math.max(S.bestStage, S.stage);
     S.bestMoney = Math.max(S.bestMoney, S.money);
     S.lastCount = count;
-    S.history.unshift({ n: S.round, count, best: best === -1 ? 0 : best, profit, money: S.money });
-    S.history = S.history.slice(0, 30);
+    S.history = [{ n: S.round, count, best: Math.max(best, 0), profit, money: S.money }, ...(S.history || [])].slice(0, 30);
     save('lotto-enhance', S);
-
-    return { count, cost, win, prizes, counts, gross, tax, net, profit, best: best === -1 ? 0 : best, shown, winners, prevStage };
+    return { count, cost, win, prizes, counts, net, profit, best: Math.max(best, 0), prevStage };
   }
 
-  // ───────── 화면 ─────────
-  function parseCount() {
-    const n = parseInt(String($('count').value).replace(/[^\d]/g, ''), 10);
-    return Number.isFinite(n) ? n : 0;
-  }
-  function setCount(n) {
-    n = Math.max(0, Math.min(n, MAX_PER_ROUND));
-    $('count').value = n ? fmt(n) : '';
-    updateCost();
-  }
-  const maxAffordable = () => Math.min(MAX_PER_ROUND, Math.floor(S.money / TICKET_PRICE));
-
-  function updateCost() {
-    const n = parseCount();
-    const cost = n * TICKET_PRICE;
-    const over = cost > S.money;
-    $('cost').innerHTML = over
-      ? `<span class="warn">돈이 모자라요 (최대 ${fmt(maxAffordable())}장)</span>`
-      : `비용 <b>${won(cost)}</b>`;
-    $('buy-btn').disabled = drawing || n < 1 || over;
-    $('buy-btn').textContent = n >= 1 ? `🎱 ${fmt(n)}장 구매하고 추첨하기` : '🎱 수량을 입력하세요';
-  }
-
-  let shownMoney = S.money;
-  function renderWallet(delta, opts = {}) {
-    if (G && delta && !REDUCE) {
-      const obj = { v: shownMoney };
-      G.to(obj, { v: S.money, duration: Math.abs(delta) > 1e9 ? 2.2 : 1.2, ease: 'power3.out',
-        onUpdate: () => { $('money').textContent = won(obj.v); } });
-      G.fromTo('#money', { scale: delta > 0 ? 1.12 : 0.94 }, { scale: 1, duration: 0.8, ease: 'elastic.out(1, 0.5)' });
-    } else {
-      $('money').textContent = won(S.money);
+  // ───────── 소리 (Web Audio 합성) ─────────
+  const Sound = (() => {
+    let ctx = null, out = null, noise = null, air = null, last = 0;
+    let on = load('lotto-sound-on', true);
+    function ensure(create) {
+      if (!on) return null;
+      if (!ctx && !create) return null;
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctx = new AC();
+        out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
+        noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        const d = noise.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
     }
-    shownMoney = S.money;
-    $('round').textContent = S.round + '회';
-    $('title').textContent = titleOf(S.money);
-    const st = $('stage');
-    st.textContent = '+' + S.stage;
-    st.className = 'stage ' + stageClass(S.stage);
-    const d = $('delta');
-    if (delta) {
-      d.textContent = signed(delta);
-      d.className = 'delta show ' + (delta > 0 ? 'up' : 'down');
-      if (G && !REDUCE) G.fromTo(d, { y: 12, scale: 0.6 }, { y: 0, scale: 1, duration: 0.6, ease: 'back.out(3)' });
-    } else {
-      d.className = 'delta';
+    function env(g, t, peak, a, d) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+    function burst(t, freq, q, peak, dec) {
+      const s = ctx.createBufferSource(); s.buffer = noise; s.playbackRate.value = 0.8 + Math.random() * 0.4;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+      const g = ctx.createGain(); env(g, t, peak, 0.002, dec);
+      s.connect(f).connect(g).connect(out); s.start(t, Math.random() * 0.5, dec + 0.05);
     }
-    if (G && !REDUCE && opts.stageUp) {
-      G.fromTo(st, { scale: 2, rotate: -15 }, { scale: 1, rotate: 0, duration: 0.9, ease: 'elastic.out(1, 0.35)' });
-    } else if (G && !REDUCE && opts.stageBroke) {
-      G.fromTo(st, { x: -10 }, { x: 0, duration: 0.7, ease: 'elastic.out(1.2, 0.15)' });
+    function tone(t, type, f0, f1, peak, dur) {
+      const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t);
+      if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      const g = ctx.createGain(); env(g, t, peak, 0.005, dur);
+      o.connect(g).connect(out); o.start(t); o.stop(t + dur + 0.05);
     }
-  }
-
-  function renderStats() {
-    const rate = S.spent ? (S.won / S.spent) * 100 : 0;
-    $('grid-stats').innerHTML = [
-      ['총 구매', fmt(S.tickets) + '장'],
-      ['쓴 돈', won(S.spent)],
-      ['받은 돈 (세후)', won(S.won)],
-      ['회수율', S.spent ? rate.toFixed(1) + '%' : '-'],
-      ['1등 당첨', fmt(S.firsts) + '번'],
-      ['최고 강화', '+' + S.bestStage],
-      ['최고 자산', won(S.bestMoney)],
-      ['현재 손익', signed(S.money - START_MONEY)],
-    ].map(([k, v]) => `<div class="gs"><small>${k}</small><b>${v}</b></div>`).join('');
-
-    $('history').innerHTML = S.history.length
-      ? S.history.slice(0, 10).map((h) => `<li>
-          <span class="n">${h.n}회</span>
-          <span>${fmt(h.count)}장 · ${h.best ? RANK_NAMES[h.best] : '꽝'}</span>
-          <span class="${h.profit > 0 ? 'up' : 'down'}">${signed(h.profit)}</span>
-        </li>`).join('')
-      : '<li style="display:block" class="empty">아직 산 로또가 없어요</li>';
-
-    $('hof').innerHTML = hof.length
-      ? hof.map((h, i) => `<li><span>${['🥇', '🥈', '🥉', '4위', '5위'][i]} ${h.date} · ${h.rounds}회차 은퇴</span><b>${won(h.money)}</b></li>`).join('')
-      : '<li class="empty" style="display:block">은퇴하면 여기에 기록돼요</li>';
-  }
-
-  function ballHtml(n, extra = '') {
-    return `<div class="ball ${colorClass(n)} ${extra}">${n}</div>`;
-  }
-
-  // 당첨 번호 하나씩 공개 (3D 추첨기가 있으면 공이 관으로 튀어나올 때마다)
-  function mysteryRow(shake = true) {
-    const m = `<div class="ball ${shake ? 'mystery' : 'mystery still'}">?</div>`;
-    return m.repeat(6) + '<span class="plus">+</span>' + m;
-  }
-
-  let manual = true;
-  try { manual = localStorage.getItem('lotto-manual') !== 'off'; } catch {}
-
-  function revealBalls(win, onDone) {
-    const box = $('win-balls');
-    const order = [...win.nums, win.bonus];
-    box.innerHTML = mysteryRow();
-    const slots = box.querySelectorAll('.ball');
-    const timers = [];
-    const pullBtn = $('pull-btn');
-    let finished = false, next = 0, busy = false;
-
-    const showOne = (k) => {
-      if (slots[k].dataset.done) return;
-      slots[k].dataset.done = '1';
-      const n = order[k];
-      slots[k].className = `ball ${colorClass(n)} pop`;
-      slots[k].textContent = n;
-      if (G && !REDUCE) G.fromTo(slots[k], { y: -28, scale: 1.5 }, { y: 0, scale: 1, duration: 0.7, ease: 'bounce.out' });
-    };
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      timers.forEach(clearTimeout);
-      order.forEach((_, k) => showOne(k));
-      if (drum) drum.finishAll(order);
-      Sound.blower(false);
-      skipDraw = null;
-      pullDraw = null;
-      $('skip').hidden = true;
-      pullBtn.hidden = true;
-      $('pull-hint').hidden = true;
-      onDone();
-    };
-    skipDraw = finish;
-    $('skip').hidden = false;
-
-    if (!drum || REDUCE) {
-      order.forEach((_, k) => timers.push(setTimeout(() => {
-        showOne(k);
-        if (k === order.length - 1) finish();
-      }, (k + 1) * 320)));
-      return;
-    }
-
-    // 공 하나 뽑기
-    const pullOne = () => {
-      if (finished || busy || next >= order.length) return;
-      busy = true;
-      const k = next++;
-      const isBonus = k === order.length - 1;
-      const release = () => {
-        Sound.pop();
-        buzz(isBonus ? [20, 30, 40] : 18);
-        drum.pick(order[k], () => {
-          showOne(k);
-          Sound.ding(k, isBonus);
-          drum.kick(0.3);
-          busy = false;
-          if (isBonus) { timers.push(setTimeout(finish, 350)); return; }
-          if (next === order.length - 1) {
-            $('draw-title').textContent = '마지막… 보너스 번호!';
-            pullBtn.classList.add('bonus');
-            pullBtn.textContent = '⭐ 보너스 공 뽑기';
-          } else {
-            pullBtn.textContent = `🎱 공 뽑기 (${next + 1}/7)`;
+    return {
+      get on() { return on; },
+      toggle() { on = !on; save('lotto-sound-on', on); if (!on) this.air(false); return on; },
+      unlock() { ensure(true); },
+      click(p) {
+        if (!ensure()) return;
+        const t = ctx.currentTime;
+        if (t - last < 0.028) return;
+        last = t;
+        burst(t, 2400 + Math.random() * 2600, 9, 0.03 + p * 0.2, 0.03);
+      },
+      air(state, strong) {
+        if (state) {
+          if (!ensure()) return;
+          if (!air) {
+            const s = ctx.createBufferSource(); s.buffer = noise; s.loop = true;
+            const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 650;
+            const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, ctx.currentTime);
+            s.connect(f).connect(g).connect(out); s.start();
+            air = { s, f, g };
           }
-          pullBtn.disabled = false;
-          if (!manual) timers.push(setTimeout(pullOne, next === order.length - 1 ? 450 : 150));
-        }, manual ? 1 : 2);
-      };
-      pullBtn.disabled = true;
-      if (isBonus) {
-        // 보너스 직전: 더 세게 돌리고 드럼롤
-        drum.turbo(true);
-        Sound.turbo();
-        const roll = manual ? 1100 : 750;
-        Sound.drumroll(roll / 1000);
-        timers.push(setTimeout(() => { drum.turbo(false); Sound.calm(); release(); }, roll));
-      } else {
-        release();
-      }
+          const t = ctx.currentTime;
+          air.f.frequency.linearRampToValueAtTime(strong ? 1500 : 650, t + 0.4);
+          air.g.gain.cancelScheduledValues(t);
+          air.g.gain.setValueAtTime(Math.max(air.g.gain.value, 0.0001), t);
+          air.g.gain.exponentialRampToValueAtTime(strong ? 0.2 : 0.12, t + 0.4);
+        } else if (air && ctx) {
+          const a = air; air = null; const t = ctx.currentTime;
+          a.g.gain.cancelScheduledValues(t);
+          a.g.gain.setValueAtTime(Math.max(a.g.gain.value, 0.0001), t);
+          a.g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+          a.s.stop(t + 0.65);
+        }
+      },
+      suck() { if (!ensure()) return; const t = ctx.currentTime; tone(t, 'sine', 220, 900, 0.22, 0.25); burst(t, 1200, 2, 0.1, 0.2); },
+      roll(sec) {
+        if (!ensure()) return;
+        const t0 = ctx.currentTime;
+        for (let x = 0; x < sec; ) { burst(t0 + x, 900 + x * 500, 3, 0.03 + (x / sec) * 0.05, 0.03); x += 0.05 - (x / sec) * 0.025; }
+      },
+      clack() { if (!ensure()) return; const t = ctx.currentTime; burst(t, 3200, 6, 0.3, 0.05); tone(t, 'triangle', 1400, 900, 0.06, 0.08); },
+      ding(k, bonus) {
+        if (!ensure()) return;
+        const t = ctx.currentTime, f = bonus ? 1046.5 : [523.3, 587.3, 659.3, 698.5, 784, 880][k] || 880;
+        tone(t, 'sine', f, null, 0.18, 0.7); tone(t, 'triangle', f * 2, null, 0.05, 0.4);
+      },
+      drumroll(sec) {
+        if (!ensure()) return;
+        const t = ctx.currentTime;
+        for (let x = 0; x < sec; ) { burst(t + x, 1400, 1.2, 0.05 + (x / sec) * 0.12, 0.05); x += 0.07 - (x / sec) * 0.035; }
+      },
+      fanfare(big) {
+        if (!ensure()) return;
+        const t = ctx.currentTime, notes = big ? [523.3, 659.3, 784, 1046.5, 784, 1046.5, 1318.5] : [659.3, 784, 1046.5];
+        notes.forEach((f, i) => tone(t + i * 0.12, 'triangle', f, null, 0.18, big && i === notes.length - 1 ? 1.2 : 0.3));
+      },
+      thud() { if (!ensure()) return; const t = ctx.currentTime; tone(t, 'sine', 180, 55, 0.4, 0.5); burst(t, 300, 1, 0.15, 0.2); },
     };
-    pullDraw = pullOne;
+  })();
 
-    drum.reset();
-    drum.mix(true);
-    Sound.blower(true);
-    $('drum-msg').style.opacity = 0;
-    pullBtn.classList.remove('bonus');
-    pullBtn.textContent = '🎱 공 뽑기 (1/7)';
-    pullBtn.disabled = true;
-    pullBtn.hidden = !manual;
-    $('pull-hint').hidden = !manual || matchMedia('(hover: none)').matches;
-    // 처음엔 잠깐 섞고 시작
-    timers.push(setTimeout(() => {
-      if (finished) return;
-      pullBtn.disabled = false;
-      if (!manual) pullOne();
-    }, manual ? 1200 : 900));
-  }
-
-  // 결과 화면 등장 애니메이션
-  function animateResult(r) {
-    if (!G || REDUCE) return;
-    const q = (sel) => document.querySelectorAll('#result ' + sel);
-    const from = (sel, vars) => { const els = q(sel); if (els.length) G.from(els, vars); };
-    from('.headline .big', { scale: 0.3, opacity: 0, duration: 0.8, ease: 'back.out(2.2)' });
-    from('.headline .msg', { y: 10, opacity: 0, duration: 0.5, delay: 0.15 });
-    from('.enhance', { scale: 0.5, opacity: 0, duration: 0.6, delay: 0.3, ease: 'back.out(3)' });
-    from('table.ranks tbody tr', { x: -24, opacity: 0, duration: 0.45, stagger: 0.06, delay: 0.35, ease: 'power2.out' });
-    from('.summary > div', { opacity: 0, duration: 0.4, stagger: 0.06, delay: 0.7 });
-    from('.ticket', { y: 14, opacity: 0, duration: 0.4, stagger: 0.04, delay: 0.85, ease: 'power2.out' });
-    from('.btn', { y: 14, opacity: 0, duration: 0.45, stagger: 0.07, delay: 1, ease: 'power2.out' });
-    if (r.best === 1) {
-      G.fromTo('#app', { scale: 1 }, { scale: 1.03, duration: 0.18, yoyo: true, repeat: 3, ease: 'power1.inOut' });
-    }
-  }
-
-  const MSG = {
-    1: ['인생 역전!!! 🎉', '이게 되네?!', '전설이 탄생했다'],
-    2: ['2등도 대박이에요!', '보너스 번호가 살렸다', '아깝다 1등…!'],
-    3: ['3등 당첨! 나쁘지 않아요', '조금만 더…!'],
-    4: ['4등이라도 어디예요', '본전은 못 찾았지만…'],
-    5: ['5천원짜리 위로…', '커피 한 잔 값 획득'],
-    0: ['전부 꽝… 로또는 냉정하다', '종이 쪼가리만 남았다', '다음엔 되겠지…?'],
-  };
-
-  function renderResult(r) {
-    const el = $('result');
-    const winRound = r.profit > 0;
-    const isWin = r.best >= 1 && r.best <= 3;
-    const headClass = winRound || isWin ? 'win' : 'lose';
-    const bigText = r.best ? `${RANK_NAMES[r.best]} 당첨${r.counts[r.best] > 1 ? ` ×${fmt(r.counts[r.best])}` : ''}${r.best === 1 ? '!!!' : '!'}` : '💥 전부 꽝';
-    const enhance = winRound
-      ? `<span class="enhance ok">⚔️ 강화 성공! +${r.prevStage} → +${S.stage}</span>`
-      : `<span class="enhance fail">💔 강화 실패… +${r.prevStage} → +0</span>`;
-
-    const rows = [1, 2, 3, 4, 5].map((k) => `
-      <tr class="r${k} ${r.counts[k] ? 'hit' : 'miss'}">
-        <td><b>${RANK_NAMES[k]}</b> <small class="rule">${RANK_RULES[k]}</small><div class="per">1장 ${won(r.prizes[k])}</div></td>
-        <td>${fmt(r.counts[k])}장</td>
-        <td>${won(r.counts[k] * r.prizes[k])}</td>
-      </tr>`).join('');
-
-    const winSet = new Set(r.win.nums);
-    const tickets = r.shown.map((t) => `
-      <div class="ticket"><span class="rank">${RANK_NAMES[t.rank]}</span>
-        ${t.nums.map((n) => (winSet.has(n) ? ballHtml(n) : n === r.win.bonus && t.rank === 2 ? ballHtml(n, 'bonus') : `<div class="ball dim">${n}</div>`)).join('')}
-      </div>`).join('');
-
-    const canReinvest = r.net >= TICKET_PRICE;
-    const reinvestN = Math.min(MAX_PER_ROUND, Math.floor(Math.min(r.net, S.money) / TICKET_PRICE));
-    const againN = Math.min(r.count, maxAffordable());
-
-    el.innerHTML = `
-      <div class="headline ${headClass}">
-        <div class="big">${bigText}</div>
-        <div class="msg">${pick(MSG[r.best])}</div>
-        ${enhance}
-      </div>
-      <table class="ranks">
-        <thead><tr><th>등수</th><th>당첨</th><th>합계</th></tr></thead>
-        <tbody>${rows}
-          <tr class="miss"><td><b>낙첨</b></td><td>${fmt(r.counts[0])}장</td><td>-</td></tr>
-        </tbody>
-      </table>
-      <div class="summary">
-        <div><span>당첨금 (세전)</span><b>${won(r.gross)}</b></div>
-        <div><span>세금</span><b>${r.tax ? '-' + won(r.tax) : '0원'}</b></div>
-        <div><span>로또 구매 비용 (${fmt(r.count)}장)</span><b>-${won(r.cost)}</b></div>
-        <div class="total"><span>이번 회차 손익</span><b class="${r.profit > 0 ? 'up' : 'down'}">${signed(r.profit)}</b></div>
-      </div>
-      ${r.shown.length ? `<div class="tickets">${tickets}</div>${r.winners > r.shown.length ? `<div class="more-tickets">외 ${fmt(r.winners - r.shown.length)}장 당첨</div>` : ''}` : ''}
-      <div class="btn-row">
-        ${canReinvest && reinvestN >= 1 ? `<button class="btn hot full" data-buy="${reinvestN}">🔥 당첨금 전부 걸고 한 번 더 (${fmt(reinvestN)}장)</button>` : ''}
-        ${againN >= 1 && !(canReinvest && againN === reinvestN) ? `<button class="btn" data-buy="${againN}">🔁 같은 수량 (${fmt(againN)}장)</button>` : ''}
-        <button class="btn" data-change>✏️ 수량 바꾸기</button>
-        ${S.money >= TICKET_PRICE ? `<button class="btn ghost full" data-retire>🏁 여기서 은퇴하기 (${won(S.money)} 기록)</button>` : ''}
-      </div>`;
-    el.hidden = false;
-    animateResult(r);
-  }
-
-  // ───────── 효과 ─────────
-  function flash(kind) {
-    const f = $('flash');
-    f.className = 'flash';
-    void f.offsetWidth;
-    f.className = 'flash ' + kind;
-  }
-  function shake() {
-    const a = $('app');
-    a.classList.remove('shake-screen');
-    void a.offsetWidth;
-    a.classList.add('shake-screen');
-  }
-  function confetti(n) {
-    const colors = ['#fbc400', '#69c8f2', '#ff7272', '#b0d840', '#c084fc', '#ffffff'];
-    for (let i = 0; i < n; i++) {
-      const c = document.createElement('div');
-      c.className = 'confetti';
-      c.style.left = Math.random() * 100 + 'vw';
-      c.style.background = pick(colors);
-      c.style.animationDuration = 1.8 + Math.random() * 1.8 + 's';
-      c.style.animationDelay = Math.random() * 0.4 + 's';
-      document.body.appendChild(c);
-      setTimeout(() => c.remove(), 4200);
-    }
-  }
-
-  // ───────── 진행 ─────────
-  function buy(count) {
-    if (drawing) return;
-    Sound.unlock();
-    count = Math.min(count, maxAffordable());
-    if (count < 1) return;
-    drawing = true;
-    setCount(count);
-    updateCost();
-
-    const r = play(count);
-    last = r;
-    const card = $('draw-card');
-    $('result').hidden = true;
-    $('draw-title').textContent = `${S.round}회차 당첨 번호 · ${fmt(count)}장 구매`;
-    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    revealBalls(r.win, () => {
-      drawing = false;
-      if (parseCount() > maxAffordable()) setCount(maxAffordable());
-      renderWallet(r.profit, { stageUp: r.profit > 0, stageBroke: r.profit <= 0 && r.prevStage > 0 });
-      renderResult(r);
-      if (drum) {
-        drum.mix(false);
-        if (r.best === 1) drum.celebrate(2.5);
-        else if (r.profit > 0) drum.celebrate(1);
-      }
-      renderStats();
-      updateCost();
-      if (r.best === 1) { flash('gold'); confetti(90); Sound.fanfare(true); buzz([100, 50, 100, 50, 300]); }
-      else if (r.profit > 0) { flash('gold'); confetti(30); Sound.fanfare(false); buzz([40, 30, 80]); }
-      else { flash('red'); shake(); Sound.thud(); buzz(120); }
-      if (S.money < TICKET_PRICE) setTimeout(showBankrupt, 900);
-    });
-  }
-
-  function modal(html) {
-    const root = $('modal-root');
-    root.innerHTML = `<div class="modal"><div class="card">${html}</div></div>`;
-    return root;
-  }
-  const closeModal = () => { $('modal-root').innerHTML = ''; };
-
-  function restart() {
-    S = fresh();
-    save('lotto-enhance', S);
-    last = null;
-    $('result').hidden = true;
-    $('win-balls').innerHTML = mysteryRow(false);
-    $('draw-title').textContent = '추첨기 대기 중';
-    $('drum-msg').style.opacity = 1;
-    if (drum) drum.reset();
-    renderWallet();
-    renderStats();
-    setCount(1000);
-    closeModal();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function showBankrupt() {
-    const rate = S.spent ? ((S.won / S.spent) * 100).toFixed(1) : '0';
-    modal(`
-      <div style="font-size:48px">💸</div>
-      <h2>파산했습니다</h2>
-      <p>${S.round}회차 동안 ${fmt(S.tickets)}장을 사서<br>${won(S.spent)}을 쓰고 ${won(S.won)}을 돌려받았어요.<br>회수율 ${rate}% · 최고 자산 ${won(S.bestMoney)}</p>
-      <button class="big-btn" data-restart>다시 10억으로 시작</button>`);
-  }
-
-  function retire() {
-    const d = new Date();
-    hof.push({ money: S.money, rounds: S.round, date: `${d.getMonth() + 1}/${d.getDate()}` });
-    hof.sort((a, b) => b.money - a.money);
-    hof = hof.slice(0, 5);
-    save('lotto-enhance-hof', hof);
-    const rank = hof.findIndex((h) => h.money === S.money && h.rounds === S.round);
-    const profit = S.money - START_MONEY;
-    modal(`
-      <div style="font-size:48px">${profit > 0 ? '🏆' : '🏳️'}</div>
-      <h2>${won(S.money)}으로 은퇴</h2>
-      <p>${S.round}회차 · 시작보다 ${signed(profit)}<br>${rank >= 0 ? `명예의 전당 ${rank + 1}위에 올랐어요!` : '명예의 전당 5위 안에는 못 들었어요.'}</p>
-      <button class="big-btn" data-restart>새 게임 시작 (10억)</button>`);
-    renderStats();
-  }
-
-  // ───────── 이벤트 ─────────
-  $('count').addEventListener('input', () => {
-    const el = $('count');
-    const n = parseCount();
-    el.value = n ? fmt(Math.min(n, MAX_PER_ROUND)) : '';
-    updateCost();
-  });
-  $('count').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('buy-btn').click(); });
-
-  document.querySelector('.quick').addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (!b) return;
-    if (b.dataset.add) setCount(parseCount() + Number(b.dataset.add));
-    else if ('max' in b.dataset) setCount(maxAffordable());
-    else if ('clear' in b.dataset) setCount(0);
-  });
-
-  $('buy-btn').addEventListener('click', () => buy(parseCount()));
-  $('skip').addEventListener('click', () => skipDraw && skipDraw());
-  $('pull-btn').addEventListener('click', () => pullDraw && pullDraw());
-  document.addEventListener('keydown', (e) => {
-    if (!pullDraw || $('pull-btn').hidden || $('pull-btn').disabled) return;
-    if (e.target.closest('input, textarea')) return;
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); pullDraw(); }
-  });
-
-  function renderTools() {
-    $('sound-btn').textContent = Sound.on ? '🔊' : '🔇';
-    $('sound-btn').classList.toggle('off', !Sound.on);
-    $('mode-btn').textContent = manual ? '✋ 직접 뽑기' : '⚡ 자동 뽑기';
-  }
-  $('sound-btn').addEventListener('click', () => { Sound.toggle(); Sound.unlock(); renderTools(); });
-  $('mode-btn').addEventListener('click', () => {
-    manual = !manual;
-    try { localStorage.setItem('lotto-manual', manual ? 'on' : 'off'); } catch {}
-    renderTools();
-    // 뽑는 도중에 자동으로 바꾸면 나머지를 자동으로
-    if (!manual && pullDraw) { $('pull-btn').hidden = true; $('pull-hint').hidden = true; pullDraw(); }
-    else if (manual && pullDraw) { $('pull-btn').hidden = false; }
-  });
-  renderTools();
-
-  $('result').addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (!b) return;
-    if (b.dataset.buy) buy(Number(b.dataset.buy));
-    else if ('change' in b.dataset) {
-      $('buy-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setTimeout(() => $('count').focus({ preventScroll: true }), 300);
-    } else if ('retire' in b.dataset) {
-      if (confirm(`${won(S.money)}으로 은퇴하고 명예의 전당에 기록할까요?\n게임은 10억으로 다시 시작돼요.`)) retire();
-    }
-  });
-
-  $('modal-root').addEventListener('click', (e) => {
-    if (e.target.closest('[data-restart]')) restart();
-  });
-
-  $('reset-btn').addEventListener('click', () => {
-    if (confirm('지금 기록을 지우고 10억으로 다시 시작할까요? (명예의 전당은 유지돼요)')) restart();
-  });
-
-  // ───────── 3D 추첨기 ─────────
-  function createDrum(THREE, RoomEnvironment, box) {
+  // ───────── 3D 돔 추첨기 ─────────
+  function createMachine(THREE, RoomEnvironment, box) {
     const canvas = box.querySelector('canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.toneMapping = THREE.NeutralToneMapping;
-    renderer.toneMappingExposure = 1.0;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-    camera.position.set(0, 0.55, 7);
-    camera.lookAt(0, 0.15, 0);
+    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-    const R = 1.3, BALL = 0.155, INNER = R - BALL - 0.02;
-    const rig = new THREE.Group();
-    scene.add(rig);
+    const R = 1.6, BALL = 0.2, INNER = R - BALL - 0.03;
+    const RAIL_Y = -R - 0.36, RAIL_Z = 1.7, RAIL_X0 = 2.05;
+    const slotX = (k) => -1.78 + k * 0.44 + (k === 6 ? 0.26 : 0);
+    const UP = new THREE.Vector3(0, 1, 0);
+    const FACE = new THREE.Quaternion(); // 숫자가 앞뒤(+z, -z)에 있어서 기본 방향이 정면
 
-    // 유리 통 + 금색 테두리 + 위쪽 출구 관 + 받침대
-    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xdfe6ff, transparent: true, opacity: 0.08, roughness: 0.03, metalness: 0, clearcoat: 1, depthWrite: false });
-    rig.add(new THREE.Mesh(new THREE.SphereGeometry(R, 64, 48), glassMat));
-    const gold = new THREE.MeshPhysicalMaterial({ color: 0xffcf3f, metalness: 1, roughness: 0.22 });
-    const ringA = new THREE.Mesh(new THREE.TorusGeometry(R + 0.015, 0.03, 16, 140), gold);
-    ringA.rotation.x = Math.PI / 2;
-    const ringB = new THREE.Mesh(new THREE.TorusGeometry(R + 0.015, 0.025, 16, 140), gold);
-    ringB.rotation.y = Math.PI / 2;
-    rig.add(ringA, ringB);
-    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.55, 32, 1, true), glassMat);
-    tube.position.y = R + 0.2;
-    const tubeRim = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.025, 12, 48), gold);
-    tubeRim.rotation.x = Math.PI / 2;
-    tubeRim.position.y = R + 0.48;
-    rig.add(tube, tubeRim);
-    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.8, 0.4, 48),
-      new THREE.MeshPhysicalMaterial({ color: 0x272c52, metalness: 0.7, roughness: 0.3 }));
-    stand.position.y = -R - 0.12;
-    scene.add(stand);
+    // 유리 돔 (빛이 굴절되는 진짜 유리 재질)
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(R, 96, 64),
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0, roughness: 0.02, transmission: 1, thickness: 0.12, ior: 1.42, clearcoat: 1, clearcoatRoughness: 0.03, specularIntensity: 1 })
+    );
+    scene.add(dome);
+    const backWall = new THREE.Mesh(
+      new THREE.SphereGeometry(R - 0.01, 64, 48),
+      new THREE.MeshPhysicalMaterial({ color: 0xbfc8ff, transparent: true, opacity: 0.05, roughness: 0.1, side: THREE.BackSide, depthWrite: false })
+    );
+    scene.add(backWall);
 
-    const key = new THREE.DirectionalLight(0xffffff, 1.5);
-    key.position.set(3, 5, 6);
-    const glow = new THREE.PointLight(0xffcf3f, 6, 12);
-    glow.position.set(0, 0.2, 2.6);
-    scene.add(key, glow);
+    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xdbe4ff, transparent: true, opacity: 0.09, roughness: 0.04, clearcoat: 1, depthWrite: false, side: THREE.DoubleSide });
+    const gold = new THREE.MeshPhysicalMaterial({ color: 0xffcf3f, metalness: 1, roughness: 0.25 });
+    const steel = new THREE.MeshPhysicalMaterial({ color: 0x23284d, metalness: 0.8, roughness: 0.3 });
 
-    // 번호 공
+    // 받침대 + 바람 나오는 고리
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.2, 0.55, 64), steel);
+    base.position.y = -R - 0.2;
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.05, 16, 96), gold);
+    collar.rotation.x = Math.PI / 2;
+    collar.position.y = -R + 0.08;
+    const airRing = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.04, 12, 64), new THREE.MeshStandardMaterial({ color: 0x66e0ff, emissive: 0x33ccff, emissiveIntensity: 0.3 }));
+    airRing.rotation.x = Math.PI / 2;
+    airRing.position.y = -R + 0.12;
+    scene.add(base, collar, airRing);
+
+    // 위쪽 흡입구 + 관
+    const funnel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.55, 0.32, 40, 1, true), glassMat);
+    funnel.position.y = R - 0.26;
+    const pipeH = 1.05;
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, pipeH, 32, 1, true), glassMat);
+    pipe.position.y = R - 0.08 + pipeH / 2;
+    const topCap = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.03, 12, 40), gold);
+    topCap.rotation.x = Math.PI / 2;
+    topCap.position.y = R - 0.06;
+    scene.add(funnel, pipe, topCap);
+
+    // 관 끝에서 앞쪽 받침대로 굴러 내려오는 미끄럼틀
+    const TOP = new THREE.Vector3(0, R + 0.95, 0);
+    const chute = new THREE.CatmullRomCurve3([
+      TOP.clone(),
+      new THREE.Vector3(0.3, R + 1.22, 0.05),
+      new THREE.Vector3(1.05, R + 1.18, 0.35),
+      new THREE.Vector3(1.95, R * 0.5, 0.85),
+      new THREE.Vector3(2.35, -0.45, 1.35),
+      new THREE.Vector3(2.25, RAIL_Y + 0.25, 1.66),
+      new THREE.Vector3(RAIL_X0, RAIL_Y, RAIL_Z),
+    ], false, 'centripetal');
+    scene.add(new THREE.Mesh(new THREE.TubeGeometry(chute, 160, 0.25, 20, false), glassMat));
+
+    // 받침대 레일 (뽑힌 공이 한 줄로 쌓임)
+    const RAIL_END = slotX(0) - BALL - 0.04;
+    const railLen = RAIL_X0 - RAIL_END;
+    for (const dz of [-0.13, 0.13]) {
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, railLen, 12), gold);
+      rod.rotation.z = Math.PI / 2;
+      rod.position.set((RAIL_X0 + RAIL_END) / 2, RAIL_Y - BALL * 0.75, RAIL_Z + dz);
+      scene.add(rod);
+    }
+    const stopper = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 12), gold);
+    stopper.position.set(RAIL_END, RAIL_Y - BALL * 0.5, RAIL_Z);
+    scene.add(stopper);
+
+    // 조명
+    const key = new THREE.DirectionalLight(0xffffff, 1.6);
+    key.position.set(3, 6, 7);
+    const fill = new THREE.PointLight(0x9fa8ff, 8, 14);
+    fill.position.set(-3, 1, 4);
+    const glow = new THREE.PointLight(0xffcf3f, 4, 10);
+    glow.position.set(0, -0.5, 2.8);
+    scene.add(key, fill, glow);
+
+    // 공 45개
     function ballTexture(n) {
       const c = document.createElement('canvas');
-      c.width = 256; c.height = 128;
+      c.width = 512; c.height = 256;
       const g = c.getContext('2d');
-      g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--x') || '';
       g.fillStyle = ['#fbc400', '#69c8f2', '#ff7272', '#aaaaaa', '#b0d840'][Math.min(4, Math.floor((n - 1) / 10))];
-      g.fillRect(0, 0, 256, 128);
-      g.save(); g.translate(128, 64); g.scale(0.5, 1);
-      g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 0, 46, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#1d1d2b'; g.font = 'bold 56px Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(String(n), 0, 4);
-      g.restore();
+      g.fillRect(0, 0, 512, 256);
+      // 구에 감기면 가로로 늘어나므로 가로를 절반으로 그려 둥글게 보이게. 앞(+z)·뒤(-z) 두 군데
+      for (const cx of [128, 384]) {
+        g.save(); g.translate(cx, 128); g.scale(0.5, 1);
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 0, 104, 0, Math.PI * 2); g.fill();
+        g.fillStyle = '#16161f'; g.font = `bold ${n >= 10 ? 118 : 132}px Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(String(n), 0, 8);
+        g.restore();
+      }
       const t = new THREE.CanvasTexture(c);
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = 4;
       return t;
     }
-    const geo = new THREE.SphereGeometry(BALL, 28, 20);
+    const ballGeo = new THREE.SphereGeometry(BALL, 40, 28);
     const balls = [];
-    const randIn = () => {
+    const randomInside = (topHalf) => {
       const v = new THREE.Vector3();
       do { v.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1); } while (v.lengthSq() > 1);
-      v.multiplyScalar(INNER * 0.85);
-      v.y = -Math.abs(v.y) * 0.9;
+      v.multiplyScalar(INNER * 0.9);
+      v.y = topHalf ? Math.abs(v.y) * 0.8 : -Math.abs(v.y);
       return v;
     };
     for (let n = 1; n <= 45; n++) {
-      const mesh = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({ map: ballTexture(n), roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.08 }));
-      mesh.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
-      rig.add(mesh);
-      balls.push({ n, mesh, p: randIn(), v: new THREE.Vector3(), picked: false, anim: null });
+      const mesh = new THREE.Mesh(ballGeo, new THREE.MeshPhysicalMaterial({ map: ballTexture(n), roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.06 }));
+      mesh.quaternion.setFromEuler(new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6));
+      scene.add(mesh);
+      const p = randomInside(false);
+      mesh.position.copy(p);
+      balls.push({ n, mesh, p, v: new THREE.Vector3(), state: 'live', anim: null });
     }
 
-    let mixing = false, turbo = false, celebrateT = 0, spin = 0, shake = 0, impact = 0;
-    const tmp = new THREE.Vector3(), d = new THREE.Vector3();
+    let mixing = false, turbo = false, shake = 0, impact = 0, airGlow = 0, level = 0, timeScale = 1, hovered = null;
+    const d = new THREE.Vector3(), tmp = new THREE.Vector3(), axis = new THREE.Vector3(), prev = new THREE.Vector3();
+
+    function rollMesh(mesh, delta) {
+      const len = delta.length();
+      if (len < 1e-5) return;
+      axis.crossVectors(UP, delta);
+      if (axis.lengthSq() < 1e-8) axis.set(1, 0, 0);
+      axis.normalize();
+      mesh.rotateOnWorldAxis(axis, len / BALL);
+    }
 
     function physics(dt) {
-      const live = balls.filter((b) => !b.picked);
+      const live = balls.filter((b) => b.state === 'live');
       for (const b of live) {
-        b.v.y -= 7 * dt;
+        b.v.y -= 9.8 * dt;
         if (mixing) {
-          const force = turbo ? 1.6 : 1;
-          if (b.p.y < 0.15) b.v.y += (20 + Math.random() * 14) * force * dt; // 바닥에서 바람
-          b.v.x += ((Math.random() - 0.5) * 26 - b.p.z * 4) * dt;          // 소용돌이
-          b.v.z += ((Math.random() - 0.5) * 26 + b.p.x * 4) * dt;
-        } else if (Math.random() < 0.003) {
-          b.v.y += 2 + Math.random() * 2;
-          b.v.x += (Math.random() - 0.5) * 1.5;
+          // 바닥 근처에서 불규칙하게 툭툭 쳐올리는 돌풍 → 공이 돔 전체로 솟구쳤다 떨어짐
+          const h = (b.p.y + INNER) / (2 * INNER);                  // 0: 바닥 ~ 1: 꼭대기
+          const power = turbo ? 1.5 : 1 + level * 0.1;
+          if (h < 0.32 && Math.random() < 14 * power * dt) {
+            b.v.y += (6 + Math.random() * 5) * Math.min(power, 1.3);
+            b.v.x += (Math.random() - 0.5) * 4 * power;
+            b.v.z += (Math.random() - 0.5) * 4 * power;
+          }
+          b.v.x += (Math.random() - 0.5) * 20 * dt;
+          b.v.y += (Math.random() - 0.5) * 20 * dt;
+          b.v.z += (Math.random() - 0.5) * 20 * dt;
         }
-        b.v.multiplyScalar(1 - 0.35 * dt);
-        if (b.v.length() > 9) b.v.setLength(9);
+        b.v.multiplyScalar(1 - 0.1 * dt);
+        if (b.v.length() > 12 + level) b.v.setLength(12 + level);
         b.p.addScaledVector(b.v, dt);
         const len = b.p.length();
-        if (len > INNER) {                                                 // 유리벽에 튕김
+        if (len > INNER) {
           d.copy(b.p).divideScalar(len);
           b.p.copy(d).multiplyScalar(INNER);
           const vn = b.v.dot(d);
           if (vn > 0) {
-            b.v.addScaledVector(d, -1.6 * vn);
-            if (vn > 1.4) impact = Math.max(impact, vn);
+            b.v.addScaledVector(d, -1.8 * vn);
+            b.v.multiplyScalar(0.985);
+            if (vn > 1.5) impact = Math.max(impact, vn);
           }
         }
       }
       const min = BALL * 2;
-      for (let i = 0; i < live.length; i++) {                              // 공끼리 부딪힘
+      for (let i = 0; i < live.length; i++) {
         const a = live[i];
         for (let j = i + 1; j < live.length; j++) {
           const b = live[j];
@@ -1231,159 +564,519 @@
           b.p.addScaledVector(d, push);
           const rel = tmp.subVectors(b.v, a.v).dot(d);
           if (rel < 0) {
-            if (-rel > 1.2) impact = Math.max(impact, -rel);
-            const imp = -rel * 0.9;
+            if (-rel > 1.3) impact = Math.max(impact, -rel);
+            const imp = -rel * 0.92;
             a.v.addScaledVector(d, -imp);
             b.v.addScaledVector(d, imp);
           }
         }
       }
       for (const b of live) {
+        tmp.subVectors(b.p, b.mesh.position);
+        rollMesh(b.mesh, tmp);
         b.mesh.position.copy(b.p);
-        b.mesh.rotation.x += b.v.z * dt * 2.5;
-        b.mesh.rotation.z -= b.v.x * dt * 2.5;
       }
     }
 
-    // 뽑힌 공: 관을 타고 올라갔다가 화면 앞으로 튀어나옴
-    const ease = (x) => 1 - Math.pow(1 - x, 3);
-    function animatePicked(dt) {
+    // 뽑힌 공: 빨려 올라감 → 관 → 미끄럼틀 → 레일의 자기 자리
+    const easeIn = (x) => x * x;
+    const easeInOut = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+    const easeOutBack = (x) => { const c = 1.4; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+    const INTAKE = new THREE.Vector3(0, R - 0.3, 0);
+    function animatePulled(dt) {
       for (const b of balls) {
         const a = b.anim;
         if (!a) continue;
-        a.t += dt * a.speed;
-        if (a.t < 0.45) {
-          const k = ease(a.t / 0.45);
-          b.mesh.position.lerpVectors(a.from, a.top, k);
-        } else if (a.t < 0.9) {
-          const k = ease((a.t - 0.45) / 0.45);
-          b.mesh.position.lerpVectors(a.top, a.out, k);
-          b.mesh.scale.setScalar(1 + k * 1.2);
-          b.mesh.rotation.set(0, -Math.PI / 2 + k * 0.4, 0);
-        } else {
-          const k = Math.min(1, (a.t - 0.9) / 0.25);
-          b.mesh.scale.setScalar(2.2 * (1 - k));
+        a.t += dt;
+        prev.copy(b.mesh.position);
+        if (a.flash > 0) {
+          a.flash = Math.max(0, a.flash - dt * 1.6);
+          b.mesh.material.emissiveIntensity = a.flash;
+        }
+        if (a.phase === 'suck') {
+          const k = Math.min(1, a.t / 0.42), e = easeIn(k), u = 1 - e;
+          // 2차 베지어: 현재 위치 → 위쪽 → 흡입구
+          b.mesh.position.set(
+            u * u * a.from.x + 2 * u * e * a.ctrl.x + e * e * INTAKE.x,
+            u * u * a.from.y + 2 * u * e * a.ctrl.y + e * e * INTAKE.y,
+            u * u * a.from.z + 2 * u * e * a.ctrl.z + e * e * INTAKE.z
+          );
+          if (k >= 1) { a.phase = 'rise'; a.t = 0; }
+        } else if (a.phase === 'rise') {
+          const k = Math.min(1, a.t / 0.38);
+          b.mesh.position.lerpVectors(INTAKE, TOP, easeInOut(k));
+          if (k >= 1) { a.phase = 'chute'; a.t = 0; a.cb.roll && a.cb.roll(1.05); }
+        } else if (a.phase === 'chute') {
+          const k = Math.min(1, a.t / 1.05);
+          const u = k * k * 0.55 + k * 0.45;                     // 내려갈수록 빨라짐
+          chute.getPointAt(Math.min(1, u), b.mesh.position);
+          if (k >= 1) { a.phase = 'rail'; a.t = 0; a.railDur = 0.25 + (RAIL_X0 - slotX(a.slot)) * 0.17; }
+        } else if (a.phase === 'rail') {
+          const k = Math.min(1, a.t / a.railDur);
+          const x = RAIL_X0 + (slotX(a.slot) - RAIL_X0) * easeOutBack(k);
+          b.mesh.position.set(x, RAIL_Y, RAIL_Z);
+          if (k > 0.55) b.mesh.quaternion.slerp(FACE, Math.min(1, (k - 0.55) * 2.6));
           if (k >= 1) {
-            b.mesh.visible = false;
+            b.mesh.quaternion.copy(FACE);
+            b.mesh.material.emissiveIntensity = 0;
             b.anim = null;
-            a.done && a.done();
+            b.state = 'tray';
+            shake = Math.max(shake, 0.25);
+            a.cb.done && a.cb.done();
+            continue;
           }
+        }
+        if (a.phase !== 'rail' || a.t < a.railDur * 0.55) {
+          tmp.subVectors(b.mesh.position, prev);
+          rollMesh(b.mesh, tmp);
         }
       }
     }
 
-    function resize() {
+    // 화면에서 손가락(마우스) 위치와 가장 가까운 공 찾기 — 움직이는 공을 집기 쉽게 판정을 넉넉하게
+    const proj = new THREE.Vector3();
+    function nearestBall(x, y) {
+      const rect = canvas.getBoundingClientRect();
+      const tan = Math.tan((camera.fov * Math.PI) / 360);
+      let best = null, bestScore = Infinity;
+      for (const b of balls) {
+        if (b.state !== 'live') continue;
+        proj.copy(b.mesh.position).project(camera);
+        const sx = rect.left + ((proj.x + 1) / 2) * rect.width;
+        const sy = rect.top + ((1 - proj.y) / 2) * rect.height;
+        const depth = camera.position.distanceTo(b.mesh.position);
+        const radius = (BALL / (depth * tan)) * (rect.height / 2);
+        const reach = Math.max(radius * 1.8, 24);
+        const dist = Math.hypot(sx - x, sy - y);
+        if (dist > reach) continue;
+        const score = dist / reach + depth * 0.02;          // 가깝고, 앞쪽에 있는 공 우선
+        if (score < bestScore) { bestScore = score; best = b; }
+      }
+      return best;
+    }
+
+    let onImpact = null, visible = true;
+    const basePos = new THREE.Vector3();
+    function fit() {
       const w = box.clientWidth, h = box.clientHeight;
       if (!w || !h) return;
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
-      camera.fov = w < 380 ? 36 : 30;
+      const xMin = -2.15, xMax = 2.6, yMin = RAIL_Y - 0.5, yMax = R + 1.5;
+      const cx = (xMin + xMax) / 2, cy = (yMin + yMax) / 2;
+      const halfW = ((xMax - xMin) / 2) * 1.05, halfH = ((yMax - yMin) / 2) * 1.04;
+      const tan = Math.tan((camera.fov * Math.PI) / 360);
+      const dist = Math.max(halfH / tan, halfW / (tan * camera.aspect)) + 1.2;
+      basePos.set(cx, cy + 0.9, 0.4 + dist);
+      camera.position.copy(basePos);
+      camera.lookAt(cx, cy, 0.4);
       camera.updateProjectionMatrix();
     }
-    new ResizeObserver(resize).observe(box);
-    resize();
 
-    let visible = true;
-    new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(box);
-    const clock = new THREE.Clock();
-    renderer.setAnimationLoop(() => {
-      const dt = Math.min(clock.getDelta(), 1 / 30);
-      if (!visible && !balls.some((b) => b.anim)) return;
-      impact = 0;
-      physics(dt / 2);
-      physics(dt / 2);
-      if (impact > 0 && onImpact) onImpact(Math.min(1, impact / 7));
-      animatePicked(dt);
-      shake = Math.max(0, shake - dt * 3);
-      camera.position.x = (Math.random() - 0.5) * shake * 0.25;
-      camera.position.y = 0.55 + (Math.random() - 0.5) * shake * 0.25;
-      spin += dt * (mixing ? 1.6 : 0.15) + dt * celebrateT * 6;
-      ringA.rotation.z = spin;
-      ringB.rotation.x = spin * 0.7;
-      rig.rotation.y = Math.sin(clock.elapsedTime * 0.3) * 0.15 + celebrateT * spin * 0.2;
-      celebrateT = Math.max(0, celebrateT - dt * 0.6);
-      glow.intensity = 6 + celebrateT * 40 + (mixing ? 4 : 0);
-      renderer.render(scene, camera);
-    });
-
-    let onImpact = null;
-    canvas.addEventListener('pointerdown', () => { if (api.onTap) api.onTap(); });
     const api = {
-      onTap: null,
+      onPointer: null,
+      level(n) { level = n; },
+      slowmo() { timeScale = 0.3; },
+      canGrab() { return !balls.some((b) => b.anim && (b.anim.phase === 'suck' || b.anim.phase === 'rise')); },
+      liveNumbers() { return balls.filter((b) => b.state === 'live').map((b) => b.n); },
+      pickAt(x, y) { const b = nearestBall(x, y); return b ? b.n : null; },
+      hover(x, y) {
+        const b = x == null ? null : nearestBall(x, y);
+        if (hovered && hovered !== b && hovered.state === 'live') hovered.mesh.scale.setScalar(1);
+        hovered = b;
+        if (b) b.mesh.scale.setScalar(1.25);
+      },
       set onImpact(fn) { onImpact = fn; },
-      stir() {
-        for (const b of balls) if (!b.picked) b.v.add(new THREE.Vector3((Math.random() - 0.5) * 5, 3 + Math.random() * 5, (Math.random() - 0.5) * 5));
-        shake = Math.max(shake, 0.4);
-      },
-      turbo(on) { turbo = on; },
-      kick(power) { shake = Math.max(shake, power); },
       mix(on) { mixing = on; if (!on) turbo = false; },
-      pick(n, done, speed = 1) {
-        const b = balls.find((x) => x.n === n);
-        if (!b || b.picked) return done && done();
-        b.picked = true;
-        shake = Math.max(shake, 0.5);
-        b.anim = { t: 0, from: b.mesh.position.clone(), top: new THREE.Vector3(0, R + 0.55, 0), out: new THREE.Vector3(0, 0.55, 3.2), done, speed };
+      turbo(on) { turbo = on; },
+      stir() {
+        for (const b of balls) if (b.state === 'live') b.v.add(tmp.set((Math.random() - 0.5) * 6, 4 + Math.random() * 6, (Math.random() - 0.5) * 6));
+        shake = Math.max(shake, 0.35);
+        airGlow = 1;
       },
-      finishAll(nums) {
-        for (const n of nums) {
-          const b = balls.find((x) => x.n === n);
-          if (!b) continue;
-          if (b.anim) { const cb = b.anim.done; b.anim = null; b.mesh.visible = false; void cb; }
-          b.picked = true;
-          b.mesh.visible = false;
-        }
-        mixing = false;
+      // n번 공을 slot번째 자리로
+      pull(n, slot, cb) {
+        const b = balls.find((x) => x.n === n);
+        if (!b || b.state !== 'live') { cb.done && cb.done(); return; }
+        b.state = 'pulling';
+        b.mesh.scale.setScalar(1);
+        if (hovered === b) hovered = null;
+        b.mesh.material.emissive.setHex(0xffffff);
+        b.anim = { phase: 'suck', t: 0, flash: 0.9, from: b.mesh.position.clone(), ctrl: new THREE.Vector3(b.p.x * 0.4, Math.max(b.p.y, 0.6), b.p.z * 0.4), slot, cb };
+        shake = Math.max(shake, 0.3);
       },
       reset() {
+        level = 0;
         for (const b of balls) {
-          if (!b.picked && !b.anim) continue;
-          b.picked = false;
-          b.anim = null;
-          b.p.copy(randIn());
-          b.p.y = INNER * 0.5;
-          b.v.set((Math.random() - 0.5) * 2, -1, (Math.random() - 0.5) * 2);
-          b.mesh.visible = true;
           b.mesh.scale.setScalar(1);
+          b.mesh.material.emissiveIntensity = 0;
+          if (b.state === 'live') continue;
+          b.state = 'live';
+          b.anim = null;
+          b.p.copy(randomInside(true));
+          b.v.set((Math.random() - 0.5) * 2, -1, (Math.random() - 0.5) * 2);
           b.mesh.position.copy(b.p);
         }
       },
-      celebrate(power) { celebrateT = power; shake = Math.max(shake, power * 0.4); },
+      finishAll(order) {
+        order.forEach((n, k) => {
+          const b = balls.find((x) => x.n === n);
+          if (!b) return;
+          b.anim = null;
+          b.state = 'tray';
+          b.mesh.scale.setScalar(1);
+          b.mesh.material.emissiveIntensity = 0;
+          b.mesh.position.set(slotX(k), RAIL_Y, RAIL_Z);
+          b.mesh.quaternion.copy(FACE);
+        });
+        mixing = false;
+      },
     };
+
+    canvas.addEventListener('pointerdown', (e) => api.onPointer && api.onPointer(e));
+    new ResizeObserver(fit).observe(box);
+    new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(box);
+    fit();
+
+    const clock = new THREE.Clock();
+    renderer.setAnimationLoop(() => {
+      const raw = Math.min(clock.getDelta(), 0.1);       // 화면이 느려도 실제 시간 기준으로 진행
+      timeScale += (1 - timeScale) * Math.min(1, raw * 3);
+      const dt = raw * timeScale;
+      if (!visible && !balls.some((b) => b.anim)) return;
+      impact = 0;
+      const steps = Math.min(8, Math.max(2, Math.ceil(dt / (1 / 150))));
+      for (let i = 0; i < steps; i++) physics(dt / steps);
+      if (impact > 0 && onImpact) onImpact(Math.min(1, impact / 8));
+      animatePulled(dt);
+      airGlow += ((mixing ? (turbo ? 2.5 : 1.4) : 0.15) - airGlow) * Math.min(1, dt * 4);
+      airRing.material.emissiveIntensity = 0.3 + airGlow * 1.6;
+      glow.intensity = 4 + airGlow * 3;
+      shake = Math.max(0, shake - dt * 2.5);
+      camera.position.set(
+        basePos.x + (Math.random() - 0.5) * shake * 0.12,
+        basePos.y + (Math.random() - 0.5) * shake * 0.12,
+        basePos.z
+      );
+      renderer.render(scene, camera);
+    });
+
     return api;
   }
 
-  function loadDrum() {
-    if (REDUCE) { document.body.classList.add('no-drum'); return; }
+  // ───────── 화면 ─────────
+  let machine = null, phase = 'idle', drawState = null;
+
+  const parseCount = () => { const n = parseInt(String($('count').value).replace(/[^\d]/g, ''), 10); return Number.isFinite(n) ? n : 0; };
+  const maxAffordable = () => Math.min(MAX_PER_ROUND, Math.floor(S.money / TICKET_PRICE));
+  function setCount(n) {
+    n = Math.max(0, Math.min(n, MAX_PER_ROUND));
+    $('count').value = n ? fmt(n) : '';
+    renderButton();
+  }
+
+  function renderPicked(order, shown) {
+    const cells = [];
+    for (let k = 0; k < 7; k++) {
+      if (k === 6) cells.push('<span class="plus">+</span>');
+      const n = order && shown[k] ? order[k] : null;
+      cells.push(n ? `<div class="ball ${colorClass(n)}${shown[k] === 'new' ? ' pop' : ''}">${n}</div>` : '<div class="ball empty"></div>');
+    }
+    $('picked').innerHTML = cells.join('');
+  }
+
+  function renderButton() {
+    const btn = $('main-btn');
+    btn.classList.remove('pull', 'bonus');
+    if (phase === 'drawing') {
+      const st = drawState, k = st.order.length;
+      btn.classList.add(k === 6 ? 'bonus' : 'pull');
+      if (!machine) {
+        btn.textContent = k === 6 ? '⭐ 보너스 공 뽑기' : `🎱 공 뽑기 (${k + 1}/7)`;
+        btn.disabled = st.busy || k >= 7;
+        return;
+      }
+      btn.textContent = !st.ready ? '🌀 섞는 중…'
+        : k >= 7 ? '결과 확인 중…'
+        : k === 6 ? '⭐ 마지막! 보너스 공을 집으세요'
+        : `👆 움직이는 공을 눌러 집으세요 (${k + 1}/7)`;
+      btn.disabled = true;
+      return;
+    }
+    const n = parseCount();
+    const over = n * TICKET_PRICE > S.money;
+    const cost = $('cost');
+    cost.textContent = over ? `최대 ${fmt(maxAffordable())}장` : won(n * TICKET_PRICE);
+    cost.classList.toggle('warn', over);
+    btn.textContent = n >= 1 ? `${fmt(n)}장 사고 추첨 시작` : '몇 장 살지 정해주세요';
+    btn.disabled = n < 1 || over;
+  }
+
+  let shownMoney = S.money;
+  function renderWallet(delta) {
+    const st = $('stage');
+    st.textContent = '+' + S.stage;
+    st.className = 'stage' + (S.stage >= 5 ? ' hot' : S.stage >= 1 ? ' up' : '');
+    const to = S.money, from = shownMoney;
+    shownMoney = to;
+    if (delta && !REDUCE) {
+      const t0 = performance.now(), dur = Math.abs(delta) > 1e9 ? 2000 : 1100;
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        $('money').textContent = won(from + (to - from) * e);
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    } else {
+      $('money').textContent = won(to);
+    }
+    const d = $('delta');
+    if (delta) { d.textContent = signed(delta); d.className = 'delta show ' + (delta > 0 ? 'up' : 'down'); }
+    else d.className = 'delta';
+  }
+
+  function renderResult(r) {
+    const hits = [1, 2, 3, 4, 5].filter((k) => r.counts[k]).map((k) => `${RANK_NAMES[k]} ${fmt(r.counts[k])}장`);
+    const head = r.best === 1 ? '🎉 1등 당첨!' : r.best === 2 ? '2등 당첨!' : r.best === 3 ? '3등 당첨!' : r.best ? '아깝다…' : '전부 꽝';
+    const detail = r.best ? hits.join(' · ') : `${fmt(r.count)}장 모두 낙첨`;
+    const reinvest = Math.min(MAX_PER_ROUND, Math.floor(Math.min(r.net, S.money) / TICKET_PRICE));
+    const enh = r.profit > 0 ? `⚔️ 강화 성공 +${r.prevStage} → +${S.stage}`
+      : r.prevStage ? `💔 강화 실패 +${r.prevStage} → +0`
+      : `당첨금(세후) ${won(r.net)} · 구매 ${won(r.cost)}`;
+    $('result').innerHTML = `
+      <div class="head ${r.best && r.best <= 3 ? 'win' : ''}">${head}</div>
+      <div class="detail">${detail}</div>
+      <div class="profit ${r.profit > 0 ? 'up' : 'down'}">${signed(r.profit)}</div>
+      <div class="enh">${enh}</div>
+      ${r.net >= TICKET_PRICE && reinvest >= 1 ? `<button class="chip-btn" type="button" data-reinvest="${reinvest}">🔥 당첨금 전부 걸기 (${fmt(reinvest)}장)</button>` : ''}`;
+    $('result').hidden = false;
+  }
+
+  function confetti(n) {
+    const colors = ['#fbc400', '#69c8f2', '#ff7272', '#b0d840', '#c084fc', '#fff'];
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = pick(colors);
+      c.style.animationDuration = 1.8 + Math.random() * 1.8 + 's';
+      c.style.animationDelay = Math.random() * 0.3 + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4200);
+    }
+  }
+
+  // ───────── 진행 ─────────
+  let miniTimer = null;
+  function mini(text) {
+    const el = $('mini');
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(miniTimer);
+    miniTimer = setTimeout(() => el.classList.remove('show'), 650);
+  }
+
+  function startDraw(count) {
+    count = Math.min(count, maxAffordable());
+    if (count < 1 || phase !== 'idle') return;
+    Sound.unlock();
+    setCount(count);
+    const r = play(count);
+    phase = 'drawing';
+    drawState = { r, order: [], arrived: 0, shown: [], ready: false, busy: false };
+    $('result').hidden = true;
+    $('buy-row').hidden = true;
+    $('skip').hidden = false;
+    $('hint').style.opacity = 0;
+    $('delta').className = 'delta';
+    renderPicked(null, []);
+    if (machine) { machine.reset(); machine.mix(true); $('machine').classList.add('grab'); }
+    Sound.air(true);
+    renderButton();
+    drawState.readyTimer = setTimeout(() => { drawState.ready = true; renderButton(); }, machine ? 1200 : 100);
+    $('machine').scrollIntoView({ behavior: REDUCE ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  // k번째로 집은 공이 받침대에 도착
+  function arrive(st, k) {
+    if (phase !== 'drawing' || drawState !== st) return;
+    const bonus = k === 6;
+    st.shown[k] = 'new';
+    renderPicked(st.order, st.shown);
+    st.shown[k] = true;
+    Sound.clack();
+    Sound.ding(k, bonus);
+    buzz(bonus ? [30, 40, 60] : 20);
+    st.arrived++;
+    st.busy = false;
+    if (st.arrived >= 7) setTimeout(finishDraw, 450);
+    renderButton();
+  }
+
+  // 공 하나 집기 (n번 공)
+  function grab(n) {
+    const st = drawState;
+    const k = st.order.length;
+    st.order.push(n);
+    st.busy = true;
+    Sound.suck();
+    buzz(25);
+    if (machine) {
+      if (k === 6) { machine.turbo(false); Sound.air(true, false); }
+      machine.slowmo();
+      machine.pull(n, k, { roll: (sec) => Sound.roll(sec), done: () => arrive(st, k) });
+      machine.level(k + 1);                                  // 집을수록 더 빨리 돈다
+      if (k === 5) {
+        // 마지막 보너스 공은 터보 바람 속에서
+        setTimeout(() => {
+          if (drawState !== st || phase !== 'drawing') return;
+          machine.turbo(true);
+          Sound.air(true, true);
+          Sound.drumroll(0.9);
+          mini('⭐ 보너스!');
+        }, 700);
+      }
+    } else {
+      setTimeout(() => arrive(st, k), 250);
+    }
+    renderButton();
+  }
+
+  function onMachinePointer(e) {
+    Sound.unlock();
+    if (phase === 'idle') { machine.stir(); buzz(10); return; }
+    const st = drawState;
+    if (!st.ready) { mini('🌀 섞는 중…'); return; }
+    if (st.order.length >= 7) return;
+    if (!machine.canGrab()) return;
+    const n = machine.pickAt(e.clientX, e.clientY);
+    if (n == null) { mini('빗나감!'); Sound.click(0.3); return; }
+    grab(n);
+  }
+
+  function autoFill() {
+    const st = drawState;
+    const pool = machine ? machine.liveNumbers() : Array.from({ length: 45 }, (_, i) => i + 1).filter((n) => !st.order.includes(n));
+    while (st.order.length < 7) st.order.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    finishDraw();
+  }
+
+  function finishDraw() {
+    if (phase !== 'drawing') return;
+    const st = drawState;
+    clearTimeout(st.readyTimer);
+    if (st.order.length < 7) return autoFill();
+    st.order.forEach((_, k) => { if (!st.shown[k]) st.shown[k] = 'new'; });
+    renderPicked(st.order, st.shown);
+    if (machine) { machine.finishAll(st.order); machine.mix(false); machine.hover(null); $('machine').classList.remove('grab'); }
+    Sound.air(false);
+    phase = 'idle';
+    const r = st.r;
+    r.win = { nums: st.order.slice(0, 6).sort((a, b) => a - b), bonus: st.order[6] };
+    renderWallet(r.profit);
+    renderResult(r);
+    $('buy-row').hidden = false;
+    $('skip').hidden = true;
+    if (parseCount() > maxAffordable()) setCount(maxAffordable());
+    renderButton();
+    if (r.best === 1) { confetti(90); Sound.fanfare(true); buzz([100, 50, 100, 50, 300]); }
+    else if (r.profit > 0) { confetti(28); Sound.fanfare(false); buzz([40, 30, 80]); }
+    else { Sound.thud(); buzz(100); }
+    if (S.money < TICKET_PRICE) setTimeout(showBankrupt, 900);
+  }
+
+  function showBankrupt() {
+    const rate = S.spent ? ((S.won / S.spent) * 100).toFixed(1) : '0';
+    $('modal-root').innerHTML = `
+      <div class="modal"><div class="modal-box">
+        <div style="font-size:44px">💸</div>
+        <h2>파산했습니다</h2>
+        <p>${S.round}회차 동안 ${won(S.spent)}을 쓰고<br>${won(S.won)}을 돌려받았어요 (회수율 ${rate}%)<br>최고 자산 ${won(S.bestMoney)}</p>
+        <button class="main-btn" type="button" data-restart>다시 10억으로 시작</button>
+      </div></div>`;
+  }
+
+  function restart() {
+    S = fresh();
+    save('lotto-enhance', S);
+    shownMoney = S.money;
+    $('modal-root').innerHTML = '';
+    $('result').hidden = true;
+    renderWallet();
+    renderPicked(null, []);
+    if (machine) machine.reset();
+    $('hint').style.opacity = 1;
+    setCount(1000);
+  }
+
+  // ───────── 이벤트 ─────────
+  $('main-btn').addEventListener('click', () => {
+    if (phase === 'drawing') {
+      // 3D를 못 쓰는 환경: 버튼으로 무작위 뽑기
+      if (!machine && drawState.ready && !drawState.busy && drawState.order.length < 7) {
+        const pool = Array.from({ length: 45 }, (_, i) => i + 1).filter((n) => !drawState.order.includes(n));
+        grab(pool[Math.floor(Math.random() * pool.length)]);
+      }
+    } else startDraw(parseCount());
+  });
+  $('skip').addEventListener('click', () => { if (phase === 'drawing') autoFill(); });
+  $('count').addEventListener('input', () => {
+    const n = parseCount();
+    $('count').value = n ? fmt(Math.min(n, MAX_PER_ROUND)) : '';
+    renderButton();
+  });
+  $('presets').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) setCount(b.dataset.set === 'max' ? maxAffordable() : Number(b.dataset.set));
+  });
+  $('result').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-reinvest]');
+    if (b) startDraw(Number(b.dataset.reinvest));
+  });
+  $('modal-root').addEventListener('click', (e) => { if (e.target.closest('[data-restart]')) restart(); });
+  $('reset-btn').addEventListener('click', () => { if (phase === 'idle' && confirm('10억으로 처음부터 다시 시작할까요?')) restart(); });
+  $('sound-btn').addEventListener('click', () => {
+    Sound.toggle();
+    Sound.unlock();
+    $('sound-btn').textContent = Sound.on ? '🔊' : '🔇';
+    if (Sound.on && phase === 'drawing') Sound.air(true);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    if (e.target.closest('button')) return;              // 버튼에 포커스가 있으면 브라우저 기본 동작에 맡김
+    if (e.target.closest('input') && e.key === ' ') return;
+    e.preventDefault();
+    if (!$('main-btn').disabled) $('main-btn').click();
+  });
+
+  // ───────── 시작 ─────────
+  $('sound-btn').textContent = Sound.on ? '🔊' : '🔇';
+  renderWallet();
+  renderPicked(null, []);
+  setCount(Math.min(S.lastCount || 1000, maxAffordable()) || 0);
+  if (S.money < TICKET_PRICE) showBankrupt();
+
+  if (!REDUCE) {
     Promise.all([import('three'), import('three/addons/environments/RoomEnvironment.js')])
       .then(([THREE, env]) => {
         try {
-          drum = createDrum(THREE, env.RoomEnvironment, $('drum'));
-          drum.onImpact = (p) => Sound.click(p);
-          drum.onTap = () => {
-            Sound.unlock();
-            if (drawing) return;
-            drum.stir();
-            buzz(10);
-          };
-        } catch (e) {
-          document.body.classList.add('no-drum');
+          machine = createMachine(THREE, env.RoomEnvironment, $('machine'));
+          machine.onImpact = (p) => Sound.click(p);
+          machine.onPointer = onMachinePointer;
+          const cv = $('machine').querySelector('canvas');
+          cv.addEventListener('pointermove', (e) => {
+            if (e.pointerType === 'mouse' && phase === 'drawing' && drawState.ready && drawState.order.length < 7) machine.hover(e.clientX, e.clientY);
+            else machine.hover(null);
+          });
+          cv.addEventListener('pointerleave', () => machine.hover(null));
+        } catch (err) {
+          $('machine').hidden = true;
         }
       })
-      .catch(() => document.body.classList.add('no-drum'));
+      .catch(() => { $('machine').hidden = true; });
+  } else {
+    $('machine').hidden = true;
   }
-
-  // ───────── 시작 ─────────
-  $('win-balls').innerHTML = mysteryRow(false);
-  loadDrum();
-  if (G && !REDUCE) {
-    G.from('header', { y: -24, opacity: 0, duration: 0.8, ease: 'power3.out' });
-    G.from('.card', { y: 40, opacity: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out', delay: 0.1, clearProps: 'transform,opacity' });
-  }
-  renderWallet();
-  renderStats();
-  setCount(Math.min(S.lastCount || 1000, maxAffordable()) || 0);
-  if (S.money < TICKET_PRICE) showBankrupt();
 })();
 </script>
 </body>

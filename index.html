@@ -157,6 +157,32 @@
   .btn.full { grid-column: 1 / -1; }
   .btn.ghost { background: transparent; color: var(--muted); }
 
+  /* 3D 추첨기 */
+  .drum { position: relative; height: 300px; margin: -6px -6px 6px; border-radius: 14px; overflow: hidden;
+    background: radial-gradient(circle at 50% 45%, rgba(124, 108, 255, .22), transparent 65%); }
+  .drum canvas { width: 100%; height: 100%; display: block; }
+  .drum-msg { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 13px; color: var(--muted); font-weight: 700; pointer-events: none; transition: opacity .3s; }
+  .no-drum .drum { display: none; }
+  .drum canvas { cursor: pointer; touch-action: manipulation; }
+  .drum-tools { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 2; }
+  .tool {
+    border: 1px solid var(--line); background: rgba(15, 18, 34, .75); border-radius: 999px;
+    padding: 5px 11px; font-size: 12.5px; font-weight: 800; cursor: pointer; color: var(--text);
+  }
+  .tool.off { color: var(--muted); }
+  .pull-btn {
+    display: block; width: 100%; margin-top: 12px; padding: 16px; border: none; border-radius: 14px; cursor: pointer;
+    font-size: 18px; font-weight: 900; color: #fff;
+    background: linear-gradient(135deg, #7c6cff, #c084fc);
+    box-shadow: 0 8px 22px rgba(124, 108, 255, .45), inset 0 -3px 0 rgba(0, 0, 0, .2);
+    transition: transform .08s, filter .15s;
+  }
+  .pull-btn:active { transform: scale(.96); }
+  .pull-btn:disabled { filter: grayscale(.6) brightness(.7); cursor: default; }
+  .pull-btn.bonus { background: linear-gradient(135deg, #ff3d5a, #ff9f1c); box-shadow: 0 8px 22px rgba(255, 61, 90, .45); }
+  .pull-hint { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+  @media (max-width: 420px) { .drum { height: 250px; } }
+
   /* 추첨 */
   .draw-title { text-align: center; color: var(--muted); font-weight: 700; margin-bottom: 10px; font-size: 14px; }
   .balls { display: flex; justify-content: center; align-items: center; gap: 7px; flex-wrap: wrap; }
@@ -172,6 +198,7 @@
     color: var(--gold); border: 2px dashed var(--gold);
     animation: shake .5s infinite alternate;
   }
+  .ball.mystery.still { animation: none; opacity: .55; }
   .ball.pop { animation: pop .35s ease; }
   @keyframes shake { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
   @keyframes pop { from { transform: scale(0); } 70% { transform: scale(1.15); } to { transform: scale(1); } }
@@ -275,6 +302,12 @@
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   }
 </style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
 </head>
 <body>
 <div class="app" id="app">
@@ -317,10 +350,20 @@
   </section>
 
   <!-- 추첨 + 결과 -->
-  <section class="card" id="draw-card" hidden>
-    <div class="draw-title" id="draw-title">이번 회차 당첨 번호</div>
+  <section class="card" id="draw-card">
+    <div class="drum" id="drum">
+      <canvas aria-label="3D 로또 추첨기 (눌러서 섞기)"></canvas>
+      <div class="drum-tools">
+        <button class="tool" id="mode-btn" type="button">✋ 직접 뽑기</button>
+        <button class="tool" id="sound-btn" type="button" aria-label="소리 켜기/끄기">🔊</button>
+      </div>
+      <div class="drum-msg" id="drum-msg">추첨기를 눌러 공을 섞어보세요</div>
+    </div>
+    <div class="draw-title" id="draw-title">추첨기 대기 중</div>
     <div class="balls" id="win-balls"></div>
-    <button class="skip" id="skip" type="button">바로 결과 보기</button>
+    <button class="pull-btn" id="pull-btn" type="button" hidden>🎱 공 뽑기</button>
+    <div class="pull-hint" id="pull-hint" hidden>스페이스바나 Enter로도 뽑을 수 있어요</div>
+    <button class="skip" id="skip" type="button" hidden>바로 결과 보기</button>
     <div id="result" class="result" hidden></div>
   </section>
 
@@ -338,6 +381,7 @@
 
   <footer>
     실제 로또 확률(1등 8,145,060분의 1)과 평균적인 당첨금·세금으로 계산한 시뮬레이션이에요.<br>
+    3D 추첨기: Three.js · 애니메이션: GSAP<br>
     실제 로또는 한 사람이 한 회차에 10만 원(100장)까지만 살 수 있고, 평균적으로 산 돈의 절반 정도만 돌려줘요.<br>
     <button type="button" id="reset-btn">처음부터 다시 하기</button>
   </footer>
@@ -346,6 +390,7 @@
 <div class="flash" id="flash"></div>
 <div id="modal-root"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
 <script>
 (() => {
   'use strict';
@@ -372,6 +417,123 @@
     return Math.floor(300_000_000 * 0.22 + (prize - 300_000_000) * 0.33);
   }
 
+  const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const G = window.gsap || null;   // 애니메이션 라이브러리 (못 불러오면 애니메이션 없이 동작)
+  let drum = null;                 // 3D 추첨기 (못 불러오면 예전 방식)
+
+  // ───────── 소리 (Web Audio로 직접 합성, 파일 없음) ─────────
+  const Sound = (() => {
+    let ctx = null, out = null, noise = null, blower = null, lastClick = 0;
+    let on = true;
+    try { on = localStorage.getItem('lotto-sound') !== 'off'; } catch {}
+    function ensure(create) {
+      if (!on) return null;
+      if (!ctx && !create) return null;   // 사용자가 한 번 누르기 전에는 소리를 켜지 않음 (브라우저 정책)
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctx = new AC();
+        out = ctx.createGain(); out.gain.value = 0.55; out.connect(ctx.destination);
+        noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        const d = noise.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+    function env(g, t, peak, attack, decay) {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    }
+    function burst(t, freq, q, peak, decay) {
+      const src = ctx.createBufferSource(); src.buffer = noise;
+      src.playbackRate.value = 0.8 + Math.random() * 0.4;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+      const g = ctx.createGain(); env(g, t, peak, 0.002, decay);
+      src.connect(f).connect(g).connect(out);
+      src.start(t, Math.random() * 0.5, decay + 0.05);
+    }
+    function tone(t, type, f0, f1, peak, dur) {
+      const o = ctx.createOscillator(); o.type = type;
+      o.frequency.setValueAtTime(f0, t);
+      if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      const g = ctx.createGain(); env(g, t, peak, 0.005, dur);
+      o.connect(g).connect(out); o.start(t); o.stop(t + dur + 0.05);
+    }
+    return {
+      get on() { return on; },
+      toggle() {
+        on = !on;
+        try { localStorage.setItem('lotto-sound', on ? 'on' : 'off'); } catch {}
+        if (!on) this.blower(false);
+        return on;
+      },
+      unlock() { ensure(true); },
+      // 공끼리·유리벽에 부딪히는 딸깍 소리 (세기에 따라)
+      click(power) {
+        if (!ensure()) return;
+        const now = ctx.currentTime;
+        if (now - lastClick < 0.03) return;
+        lastClick = now;
+        burst(now, 2600 + Math.random() * 2400, 9, 0.04 + power * 0.22, 0.035);
+      },
+      // 섞을 때 바람 소리
+      blower(onOff) {
+        if (onOff) {
+          if (!ensure() || blower) return;
+          const src = ctx.createBufferSource(); src.buffer = noise; src.loop = true;
+          const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700;
+          const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.4);
+          src.connect(f).connect(g).connect(out); src.start();
+          blower = { src, g, f };
+        } else if (blower && ctx) {
+          const b = blower; blower = null;
+          b.g.gain.cancelScheduledValues(ctx.currentTime);
+          b.g.gain.setValueAtTime(Math.max(b.g.gain.value, 0.0001), ctx.currentTime);
+          b.g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+          b.src.stop(ctx.currentTime + 0.55);
+        }
+      },
+      turbo() { if (blower && ctx) { blower.f.frequency.linearRampToValueAtTime(1600, ctx.currentTime + 0.6); blower.g.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.6); } },
+      calm() { if (blower && ctx) { blower.f.frequency.linearRampToValueAtTime(700, ctx.currentTime + 0.3); blower.g.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.3); } },
+      // 공이 관으로 빠져나가는 소리
+      pop() {
+        if (!ensure()) return;
+        const t = ctx.currentTime;
+        tone(t, 'sine', 260, 820, 0.25, 0.14);
+        burst(t, 1800, 4, 0.12, 0.05);
+      },
+      // 번호 공개 (k번째일수록 음이 올라감)
+      ding(k, bonus) {
+        if (!ensure()) return;
+        const t = ctx.currentTime;
+        const base = bonus ? 1046.5 : [523.3, 587.3, 659.3, 698.5, 784, 880][k] || 880;
+        tone(t, 'sine', base, null, 0.22, 0.7);
+        tone(t, 'triangle', base * 2, null, 0.06, 0.4);
+      },
+      drumroll(sec) {
+        if (!ensure()) return;
+        const t = ctx.currentTime;
+        for (let i = 0, x = 0; x < sec; i++) { burst(t + x, 1400, 1.2, 0.05 + (x / sec) * 0.12, 0.05); x += 0.07 - (x / sec) * 0.035; }
+      },
+      fanfare(big) {
+        if (!ensure()) return;
+        const t = ctx.currentTime;
+        const notes = big ? [523.3, 659.3, 784, 1046.5, 784, 1046.5, 1318.5] : [659.3, 784, 1046.5];
+        notes.forEach((f, i) => { tone(t + i * 0.12, 'triangle', f, null, 0.18, big && i === notes.length - 1 ? 1.2 : 0.3); });
+      },
+      thud() {
+        if (!ensure()) return;
+        const t = ctx.currentTime;
+        tone(t, 'sine', 180, 55, 0.4, 0.5);
+        burst(t, 300, 1, 0.15, 0.2);
+      },
+    };
+  })();
+  const buzz = (pattern) => { try { navigator.vibrate && navigator.vibrate(pattern); } catch {} };
+
   // ───────── 상태 ─────────
   const fresh = () => ({
     money: START_MONEY, round: 0, stage: 0, bestStage: 0, bestMoney: START_MONEY,
@@ -385,6 +547,7 @@
   let last = null;         // 직전 회차 결과
   let drawing = false;
   let skipDraw = null;
+  let pullDraw = null;
 
   // ───────── 유틸 ─────────
   const $ = (id) => document.getElementById(id);
@@ -520,8 +683,17 @@
     $('buy-btn').textContent = n >= 1 ? `🎱 ${fmt(n)}장 구매하고 추첨하기` : '🎱 수량을 입력하세요';
   }
 
-  function renderWallet(delta) {
-    $('money').textContent = won(S.money);
+  let shownMoney = S.money;
+  function renderWallet(delta, opts = {}) {
+    if (G && delta && !REDUCE) {
+      const obj = { v: shownMoney };
+      G.to(obj, { v: S.money, duration: Math.abs(delta) > 1e9 ? 2.2 : 1.2, ease: 'power3.out',
+        onUpdate: () => { $('money').textContent = won(obj.v); } });
+      G.fromTo('#money', { scale: delta > 0 ? 1.12 : 0.94 }, { scale: 1, duration: 0.8, ease: 'elastic.out(1, 0.5)' });
+    } else {
+      $('money').textContent = won(S.money);
+    }
+    shownMoney = S.money;
     $('round').textContent = S.round + '회';
     $('title').textContent = titleOf(S.money);
     const st = $('stage');
@@ -531,8 +703,14 @@
     if (delta) {
       d.textContent = signed(delta);
       d.className = 'delta show ' + (delta > 0 ? 'up' : 'down');
+      if (G && !REDUCE) G.fromTo(d, { y: 12, scale: 0.6 }, { y: 0, scale: 1, duration: 0.6, ease: 'back.out(3)' });
     } else {
       d.className = 'delta';
+    }
+    if (G && !REDUCE && opts.stageUp) {
+      G.fromTo(st, { scale: 2, rotate: -15 }, { scale: 1, rotate: 0, duration: 0.9, ease: 'elastic.out(1, 0.35)' });
+    } else if (G && !REDUCE && opts.stageBroke) {
+      G.fromTo(st, { x: -10 }, { x: 0, duration: 0.7, ease: 'elastic.out(1.2, 0.15)' });
     }
   }
 
@@ -566,33 +744,129 @@
     return `<div class="ball ${colorClass(n)} ${extra}">${n}</div>`;
   }
 
-  // 당첨 번호 하나씩 공개
+  // 당첨 번호 하나씩 공개 (3D 추첨기가 있으면 공이 관으로 튀어나올 때마다)
+  function mysteryRow(shake = true) {
+    const m = `<div class="ball ${shake ? 'mystery' : 'mystery still'}">?</div>`;
+    return m.repeat(6) + '<span class="plus">+</span>' + m;
+  }
+
+  let manual = true;
+  try { manual = localStorage.getItem('lotto-manual') !== 'off'; } catch {}
+
   function revealBalls(win, onDone) {
     const box = $('win-balls');
     const order = [...win.nums, win.bonus];
-    box.innerHTML = win.nums.map(() => '<div class="ball mystery">?</div>').join('') + '<span class="plus">+</span><div class="ball mystery">?</div>';
+    box.innerHTML = mysteryRow();
     const slots = box.querySelectorAll('.ball');
-    let i = 0, timer = null, finished = false;
+    const timers = [];
+    const pullBtn = $('pull-btn');
+    let finished = false, next = 0, busy = false;
+
     const showOne = (k) => {
+      if (slots[k].dataset.done) return;
+      slots[k].dataset.done = '1';
       const n = order[k];
       slots[k].className = `ball ${colorClass(n)} pop`;
       slots[k].textContent = n;
+      if (G && !REDUCE) G.fromTo(slots[k], { y: -28, scale: 1.5 }, { y: 0, scale: 1, duration: 0.7, ease: 'bounce.out' });
     };
     const finish = () => {
       if (finished) return;
       finished = true;
-      clearInterval(timer);
-      for (let k = i; k < order.length; k++) showOne(k);
+      timers.forEach(clearTimeout);
+      order.forEach((_, k) => showOne(k));
+      if (drum) drum.finishAll(order);
+      Sound.blower(false);
       skipDraw = null;
+      pullDraw = null;
       $('skip').hidden = true;
+      pullBtn.hidden = true;
+      $('pull-hint').hidden = true;
       onDone();
     };
     skipDraw = finish;
     $('skip').hidden = false;
-    timer = setInterval(() => {
-      showOne(i++);
-      if (i >= order.length) finish();
-    }, 320);
+
+    if (!drum || REDUCE) {
+      order.forEach((_, k) => timers.push(setTimeout(() => {
+        showOne(k);
+        if (k === order.length - 1) finish();
+      }, (k + 1) * 320)));
+      return;
+    }
+
+    // 공 하나 뽑기
+    const pullOne = () => {
+      if (finished || busy || next >= order.length) return;
+      busy = true;
+      const k = next++;
+      const isBonus = k === order.length - 1;
+      const release = () => {
+        Sound.pop();
+        buzz(isBonus ? [20, 30, 40] : 18);
+        drum.pick(order[k], () => {
+          showOne(k);
+          Sound.ding(k, isBonus);
+          drum.kick(0.3);
+          busy = false;
+          if (isBonus) { timers.push(setTimeout(finish, 350)); return; }
+          if (next === order.length - 1) {
+            $('draw-title').textContent = '마지막… 보너스 번호!';
+            pullBtn.classList.add('bonus');
+            pullBtn.textContent = '⭐ 보너스 공 뽑기';
+          } else {
+            pullBtn.textContent = `🎱 공 뽑기 (${next + 1}/7)`;
+          }
+          pullBtn.disabled = false;
+          if (!manual) timers.push(setTimeout(pullOne, next === order.length - 1 ? 450 : 150));
+        }, manual ? 1 : 2);
+      };
+      pullBtn.disabled = true;
+      if (isBonus) {
+        // 보너스 직전: 더 세게 돌리고 드럼롤
+        drum.turbo(true);
+        Sound.turbo();
+        const roll = manual ? 1100 : 750;
+        Sound.drumroll(roll / 1000);
+        timers.push(setTimeout(() => { drum.turbo(false); Sound.calm(); release(); }, roll));
+      } else {
+        release();
+      }
+    };
+    pullDraw = pullOne;
+
+    drum.reset();
+    drum.mix(true);
+    Sound.blower(true);
+    $('drum-msg').style.opacity = 0;
+    pullBtn.classList.remove('bonus');
+    pullBtn.textContent = '🎱 공 뽑기 (1/7)';
+    pullBtn.disabled = true;
+    pullBtn.hidden = !manual;
+    $('pull-hint').hidden = !manual || matchMedia('(hover: none)').matches;
+    // 처음엔 잠깐 섞고 시작
+    timers.push(setTimeout(() => {
+      if (finished) return;
+      pullBtn.disabled = false;
+      if (!manual) pullOne();
+    }, manual ? 1200 : 900));
+  }
+
+  // 결과 화면 등장 애니메이션
+  function animateResult(r) {
+    if (!G || REDUCE) return;
+    const q = (sel) => document.querySelectorAll('#result ' + sel);
+    const from = (sel, vars) => { const els = q(sel); if (els.length) G.from(els, vars); };
+    from('.headline .big', { scale: 0.3, opacity: 0, duration: 0.8, ease: 'back.out(2.2)' });
+    from('.headline .msg', { y: 10, opacity: 0, duration: 0.5, delay: 0.15 });
+    from('.enhance', { scale: 0.5, opacity: 0, duration: 0.6, delay: 0.3, ease: 'back.out(3)' });
+    from('table.ranks tbody tr', { x: -24, opacity: 0, duration: 0.45, stagger: 0.06, delay: 0.35, ease: 'power2.out' });
+    from('.summary > div', { opacity: 0, duration: 0.4, stagger: 0.06, delay: 0.7 });
+    from('.ticket', { y: 14, opacity: 0, duration: 0.4, stagger: 0.04, delay: 0.85, ease: 'power2.out' });
+    from('.btn', { y: 14, opacity: 0, duration: 0.45, stagger: 0.07, delay: 1, ease: 'power2.out' });
+    if (r.best === 1) {
+      G.fromTo('#app', { scale: 1 }, { scale: 1.03, duration: 0.18, yoyo: true, repeat: 3, ease: 'power1.inOut' });
+    }
   }
 
   const MSG = {
@@ -657,6 +931,7 @@
         ${S.money >= TICKET_PRICE ? `<button class="btn ghost full" data-retire>🏁 여기서 은퇴하기 (${won(S.money)} 기록)</button>` : ''}
       </div>`;
     el.hidden = false;
+    animateResult(r);
   }
 
   // ───────── 효과 ─────────
@@ -689,6 +964,7 @@
   // ───────── 진행 ─────────
   function buy(count) {
     if (drawing) return;
+    Sound.unlock();
     count = Math.min(count, maxAffordable());
     if (count < 1) return;
     drawing = true;
@@ -698,7 +974,6 @@
     const r = play(count);
     last = r;
     const card = $('draw-card');
-    card.hidden = false;
     $('result').hidden = true;
     $('draw-title').textContent = `${S.round}회차 당첨 번호 · ${fmt(count)}장 구매`;
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -706,13 +981,18 @@
     revealBalls(r.win, () => {
       drawing = false;
       if (parseCount() > maxAffordable()) setCount(maxAffordable());
-      renderWallet(r.profit);
+      renderWallet(r.profit, { stageUp: r.profit > 0, stageBroke: r.profit <= 0 && r.prevStage > 0 });
       renderResult(r);
+      if (drum) {
+        drum.mix(false);
+        if (r.best === 1) drum.celebrate(2.5);
+        else if (r.profit > 0) drum.celebrate(1);
+      }
       renderStats();
       updateCost();
-      if (r.best === 1) { flash('gold'); confetti(90); }
-      else if (r.profit > 0) { flash('gold'); confetti(30); }
-      else { flash('red'); shake(); }
+      if (r.best === 1) { flash('gold'); confetti(90); Sound.fanfare(true); buzz([100, 50, 100, 50, 300]); }
+      else if (r.profit > 0) { flash('gold'); confetti(30); Sound.fanfare(false); buzz([40, 30, 80]); }
+      else { flash('red'); shake(); Sound.thud(); buzz(120); }
       if (S.money < TICKET_PRICE) setTimeout(showBankrupt, 900);
     });
   }
@@ -728,7 +1008,11 @@
     S = fresh();
     save('lotto-enhance', S);
     last = null;
-    $('draw-card').hidden = true;
+    $('result').hidden = true;
+    $('win-balls').innerHTML = mysteryRow(false);
+    $('draw-title').textContent = '추첨기 대기 중';
+    $('drum-msg').style.opacity = 1;
+    if (drum) drum.reset();
     renderWallet();
     renderStats();
     setCount(1000);
@@ -780,6 +1064,28 @@
 
   $('buy-btn').addEventListener('click', () => buy(parseCount()));
   $('skip').addEventListener('click', () => skipDraw && skipDraw());
+  $('pull-btn').addEventListener('click', () => pullDraw && pullDraw());
+  document.addEventListener('keydown', (e) => {
+    if (!pullDraw || $('pull-btn').hidden || $('pull-btn').disabled) return;
+    if (e.target.closest('input, textarea')) return;
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); pullDraw(); }
+  });
+
+  function renderTools() {
+    $('sound-btn').textContent = Sound.on ? '🔊' : '🔇';
+    $('sound-btn').classList.toggle('off', !Sound.on);
+    $('mode-btn').textContent = manual ? '✋ 직접 뽑기' : '⚡ 자동 뽑기';
+  }
+  $('sound-btn').addEventListener('click', () => { Sound.toggle(); Sound.unlock(); renderTools(); });
+  $('mode-btn').addEventListener('click', () => {
+    manual = !manual;
+    try { localStorage.setItem('lotto-manual', manual ? 'on' : 'off'); } catch {}
+    renderTools();
+    // 뽑는 도중에 자동으로 바꾸면 나머지를 자동으로
+    if (!manual && pullDraw) { $('pull-btn').hidden = true; $('pull-hint').hidden = true; pullDraw(); }
+    else if (manual && pullDraw) { $('pull-btn').hidden = false; }
+  });
+  renderTools();
 
   $('result').addEventListener('click', (e) => {
     const b = e.target.closest('button');
@@ -801,7 +1107,279 @@
     if (confirm('지금 기록을 지우고 10억으로 다시 시작할까요? (명예의 전당은 유지돼요)')) restart();
   });
 
+  // ───────── 3D 추첨기 ─────────
+  function createDrum(THREE, RoomEnvironment, box) {
+    const canvas = box.querySelector('canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.toneMapping = THREE.NeutralToneMapping;
+    renderer.toneMappingExposure = 1.0;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+    camera.position.set(0, 0.55, 7);
+    camera.lookAt(0, 0.15, 0);
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const R = 1.3, BALL = 0.155, INNER = R - BALL - 0.02;
+    const rig = new THREE.Group();
+    scene.add(rig);
+
+    // 유리 통 + 금색 테두리 + 위쪽 출구 관 + 받침대
+    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0xdfe6ff, transparent: true, opacity: 0.08, roughness: 0.03, metalness: 0, clearcoat: 1, depthWrite: false });
+    rig.add(new THREE.Mesh(new THREE.SphereGeometry(R, 64, 48), glassMat));
+    const gold = new THREE.MeshPhysicalMaterial({ color: 0xffcf3f, metalness: 1, roughness: 0.22 });
+    const ringA = new THREE.Mesh(new THREE.TorusGeometry(R + 0.015, 0.03, 16, 140), gold);
+    ringA.rotation.x = Math.PI / 2;
+    const ringB = new THREE.Mesh(new THREE.TorusGeometry(R + 0.015, 0.025, 16, 140), gold);
+    ringB.rotation.y = Math.PI / 2;
+    rig.add(ringA, ringB);
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.55, 32, 1, true), glassMat);
+    tube.position.y = R + 0.2;
+    const tubeRim = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.025, 12, 48), gold);
+    tubeRim.rotation.x = Math.PI / 2;
+    tubeRim.position.y = R + 0.48;
+    rig.add(tube, tubeRim);
+    const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.8, 0.4, 48),
+      new THREE.MeshPhysicalMaterial({ color: 0x272c52, metalness: 0.7, roughness: 0.3 }));
+    stand.position.y = -R - 0.12;
+    scene.add(stand);
+
+    const key = new THREE.DirectionalLight(0xffffff, 1.5);
+    key.position.set(3, 5, 6);
+    const glow = new THREE.PointLight(0xffcf3f, 6, 12);
+    glow.position.set(0, 0.2, 2.6);
+    scene.add(key, glow);
+
+    // 번호 공
+    function ballTexture(n) {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 128;
+      const g = c.getContext('2d');
+      g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--x') || '';
+      g.fillStyle = ['#fbc400', '#69c8f2', '#ff7272', '#aaaaaa', '#b0d840'][Math.min(4, Math.floor((n - 1) / 10))];
+      g.fillRect(0, 0, 256, 128);
+      g.save(); g.translate(128, 64); g.scale(0.5, 1);
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(0, 0, 46, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#1d1d2b'; g.font = 'bold 56px Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(String(n), 0, 4);
+      g.restore();
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 4;
+      return t;
+    }
+    const geo = new THREE.SphereGeometry(BALL, 28, 20);
+    const balls = [];
+    const randIn = () => {
+      const v = new THREE.Vector3();
+      do { v.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1); } while (v.lengthSq() > 1);
+      v.multiplyScalar(INNER * 0.85);
+      v.y = -Math.abs(v.y) * 0.9;
+      return v;
+    };
+    for (let n = 1; n <= 45; n++) {
+      const mesh = new THREE.Mesh(geo, new THREE.MeshPhysicalMaterial({ map: ballTexture(n), roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.08 }));
+      mesh.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+      rig.add(mesh);
+      balls.push({ n, mesh, p: randIn(), v: new THREE.Vector3(), picked: false, anim: null });
+    }
+
+    let mixing = false, turbo = false, celebrateT = 0, spin = 0, shake = 0, impact = 0;
+    const tmp = new THREE.Vector3(), d = new THREE.Vector3();
+
+    function physics(dt) {
+      const live = balls.filter((b) => !b.picked);
+      for (const b of live) {
+        b.v.y -= 7 * dt;
+        if (mixing) {
+          const force = turbo ? 1.6 : 1;
+          if (b.p.y < 0.15) b.v.y += (20 + Math.random() * 14) * force * dt; // 바닥에서 바람
+          b.v.x += ((Math.random() - 0.5) * 26 - b.p.z * 4) * dt;          // 소용돌이
+          b.v.z += ((Math.random() - 0.5) * 26 + b.p.x * 4) * dt;
+        } else if (Math.random() < 0.003) {
+          b.v.y += 2 + Math.random() * 2;
+          b.v.x += (Math.random() - 0.5) * 1.5;
+        }
+        b.v.multiplyScalar(1 - 0.35 * dt);
+        if (b.v.length() > 9) b.v.setLength(9);
+        b.p.addScaledVector(b.v, dt);
+        const len = b.p.length();
+        if (len > INNER) {                                                 // 유리벽에 튕김
+          d.copy(b.p).divideScalar(len);
+          b.p.copy(d).multiplyScalar(INNER);
+          const vn = b.v.dot(d);
+          if (vn > 0) {
+            b.v.addScaledVector(d, -1.6 * vn);
+            if (vn > 1.4) impact = Math.max(impact, vn);
+          }
+        }
+      }
+      const min = BALL * 2;
+      for (let i = 0; i < live.length; i++) {                              // 공끼리 부딪힘
+        const a = live[i];
+        for (let j = i + 1; j < live.length; j++) {
+          const b = live[j];
+          d.subVectors(b.p, a.p);
+          const dist2 = d.lengthSq();
+          if (dist2 >= min * min || dist2 === 0) continue;
+          const dist = Math.sqrt(dist2);
+          d.divideScalar(dist);
+          const push = (min - dist) / 2;
+          a.p.addScaledVector(d, -push);
+          b.p.addScaledVector(d, push);
+          const rel = tmp.subVectors(b.v, a.v).dot(d);
+          if (rel < 0) {
+            if (-rel > 1.2) impact = Math.max(impact, -rel);
+            const imp = -rel * 0.9;
+            a.v.addScaledVector(d, -imp);
+            b.v.addScaledVector(d, imp);
+          }
+        }
+      }
+      for (const b of live) {
+        b.mesh.position.copy(b.p);
+        b.mesh.rotation.x += b.v.z * dt * 2.5;
+        b.mesh.rotation.z -= b.v.x * dt * 2.5;
+      }
+    }
+
+    // 뽑힌 공: 관을 타고 올라갔다가 화면 앞으로 튀어나옴
+    const ease = (x) => 1 - Math.pow(1 - x, 3);
+    function animatePicked(dt) {
+      for (const b of balls) {
+        const a = b.anim;
+        if (!a) continue;
+        a.t += dt * a.speed;
+        if (a.t < 0.45) {
+          const k = ease(a.t / 0.45);
+          b.mesh.position.lerpVectors(a.from, a.top, k);
+        } else if (a.t < 0.9) {
+          const k = ease((a.t - 0.45) / 0.45);
+          b.mesh.position.lerpVectors(a.top, a.out, k);
+          b.mesh.scale.setScalar(1 + k * 1.2);
+          b.mesh.rotation.set(0, -Math.PI / 2 + k * 0.4, 0);
+        } else {
+          const k = Math.min(1, (a.t - 0.9) / 0.25);
+          b.mesh.scale.setScalar(2.2 * (1 - k));
+          if (k >= 1) {
+            b.mesh.visible = false;
+            b.anim = null;
+            a.done && a.done();
+          }
+        }
+      }
+    }
+
+    function resize() {
+      const w = box.clientWidth, h = box.clientHeight;
+      if (!w || !h) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.fov = w < 380 ? 36 : 30;
+      camera.updateProjectionMatrix();
+    }
+    new ResizeObserver(resize).observe(box);
+    resize();
+
+    let visible = true;
+    new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(box);
+    const clock = new THREE.Clock();
+    renderer.setAnimationLoop(() => {
+      const dt = Math.min(clock.getDelta(), 1 / 30);
+      if (!visible && !balls.some((b) => b.anim)) return;
+      impact = 0;
+      physics(dt / 2);
+      physics(dt / 2);
+      if (impact > 0 && onImpact) onImpact(Math.min(1, impact / 7));
+      animatePicked(dt);
+      shake = Math.max(0, shake - dt * 3);
+      camera.position.x = (Math.random() - 0.5) * shake * 0.25;
+      camera.position.y = 0.55 + (Math.random() - 0.5) * shake * 0.25;
+      spin += dt * (mixing ? 1.6 : 0.15) + dt * celebrateT * 6;
+      ringA.rotation.z = spin;
+      ringB.rotation.x = spin * 0.7;
+      rig.rotation.y = Math.sin(clock.elapsedTime * 0.3) * 0.15 + celebrateT * spin * 0.2;
+      celebrateT = Math.max(0, celebrateT - dt * 0.6);
+      glow.intensity = 6 + celebrateT * 40 + (mixing ? 4 : 0);
+      renderer.render(scene, camera);
+    });
+
+    let onImpact = null;
+    canvas.addEventListener('pointerdown', () => { if (api.onTap) api.onTap(); });
+    const api = {
+      onTap: null,
+      set onImpact(fn) { onImpact = fn; },
+      stir() {
+        for (const b of balls) if (!b.picked) b.v.add(new THREE.Vector3((Math.random() - 0.5) * 5, 3 + Math.random() * 5, (Math.random() - 0.5) * 5));
+        shake = Math.max(shake, 0.4);
+      },
+      turbo(on) { turbo = on; },
+      kick(power) { shake = Math.max(shake, power); },
+      mix(on) { mixing = on; if (!on) turbo = false; },
+      pick(n, done, speed = 1) {
+        const b = balls.find((x) => x.n === n);
+        if (!b || b.picked) return done && done();
+        b.picked = true;
+        shake = Math.max(shake, 0.5);
+        b.anim = { t: 0, from: b.mesh.position.clone(), top: new THREE.Vector3(0, R + 0.55, 0), out: new THREE.Vector3(0, 0.55, 3.2), done, speed };
+      },
+      finishAll(nums) {
+        for (const n of nums) {
+          const b = balls.find((x) => x.n === n);
+          if (!b) continue;
+          if (b.anim) { const cb = b.anim.done; b.anim = null; b.mesh.visible = false; void cb; }
+          b.picked = true;
+          b.mesh.visible = false;
+        }
+        mixing = false;
+      },
+      reset() {
+        for (const b of balls) {
+          if (!b.picked && !b.anim) continue;
+          b.picked = false;
+          b.anim = null;
+          b.p.copy(randIn());
+          b.p.y = INNER * 0.5;
+          b.v.set((Math.random() - 0.5) * 2, -1, (Math.random() - 0.5) * 2);
+          b.mesh.visible = true;
+          b.mesh.scale.setScalar(1);
+          b.mesh.position.copy(b.p);
+        }
+      },
+      celebrate(power) { celebrateT = power; shake = Math.max(shake, power * 0.4); },
+    };
+    return api;
+  }
+
+  function loadDrum() {
+    if (REDUCE) { document.body.classList.add('no-drum'); return; }
+    Promise.all([import('three'), import('three/addons/environments/RoomEnvironment.js')])
+      .then(([THREE, env]) => {
+        try {
+          drum = createDrum(THREE, env.RoomEnvironment, $('drum'));
+          drum.onImpact = (p) => Sound.click(p);
+          drum.onTap = () => {
+            Sound.unlock();
+            if (drawing) return;
+            drum.stir();
+            buzz(10);
+          };
+        } catch (e) {
+          document.body.classList.add('no-drum');
+        }
+      })
+      .catch(() => document.body.classList.add('no-drum'));
+  }
+
   // ───────── 시작 ─────────
+  $('win-balls').innerHTML = mysteryRow(false);
+  loadDrum();
+  if (G && !REDUCE) {
+    G.from('header', { y: -24, opacity: 0, duration: 0.8, ease: 'power3.out' });
+    G.from('.card', { y: 40, opacity: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out', delay: 0.1, clearProps: 'transform,opacity' });
+  }
   renderWallet();
   renderStats();
   setCount(Math.min(S.lastCount || 1000, maxAffordable()) || 0);
